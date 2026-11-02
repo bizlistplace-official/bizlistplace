@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import { BusinessCard } from '@/components/business/BusinessCard';
 import { Pagination } from '@/components/ui/Pagination';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { ICategory, IBusiness } from '@bizpockethub/shared';
 import { ChevronRight, Building2, Search, SlidersHorizontal } from 'lucide-react';
 
@@ -40,19 +41,21 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
   const country = resolvedSearchParams.country || '';
   const sort = resolvedSearchParams.sort || 'relevance';
 
-  const categoryRes = await fetchApi<ICategory>(`/categories/${slug}`);
-  if (!categoryRes.success || !categoryRes.data) {
-    notFound();
-  }
-  const category = categoryRes.data;
-
   const queryParams = new URLSearchParams();
   queryParams.set('page', String(page));
   queryParams.set('limit', '12');
   if (country) queryParams.set('country', country);
   if (sort) queryParams.set('sort', sort);
 
-  const businessRes = await fetchApi<IBusiness[]>(`/categories/${slug}/businesses?${queryParams.toString()}`);
+  const [categoryRes, businessRes] = await Promise.all([
+    fetchApi<ICategory>(`/categories/${slug}`),
+    fetchApi<IBusiness[]>(`/categories/${slug}/businesses?${queryParams.toString()}`),
+  ]);
+
+  if (!categoryRes.success || !categoryRes.data) {
+    notFound();
+  }
+  const category = categoryRes.data;
 
   const businesses: IBusiness[] = Array.isArray(businessRes.data)
     ? businessRes.data
@@ -62,17 +65,12 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Breadcrumbs */}
-      <nav className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-        <Link href="/" className="hover:text-slate-900 transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link href="/categories" className="hover:text-slate-900 transition-colors">
-          Categories
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-slate-900 font-semibold">{category.name}</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: 'Categories', href: '/categories' },
+          { label: category.name },
+        ]}
+      />
 
       {/* Hero Banner */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-sm space-y-4">

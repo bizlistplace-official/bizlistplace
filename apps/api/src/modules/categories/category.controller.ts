@@ -58,6 +58,7 @@ export class CategoryController {
 
   static async getBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=180, stale-while-revalidate=600');
       const { slug } = req.params;
       const category = await Category.findOne({ slug, isActive: true }).lean();
 
@@ -92,6 +93,7 @@ export class CategoryController {
     next: NextFunction
   ): Promise<void> {
     try {
+      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
       const { slug } = req.params;
       const category = await Category.findOne({ slug, isActive: true });
 

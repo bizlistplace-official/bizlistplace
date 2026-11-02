@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { fetchApi } from '@/lib/api';
 import { CountryInfo, POPULAR_COUNTRIES } from '@bizpockethub/shared';
 import { Globe, MapPin, Building2 } from 'lucide-react';
@@ -17,7 +18,10 @@ export default async function CountriesPage() {
   const countries = res.data || POPULAR_COUNTRIES;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs items={[{ label: 'Countries' }]} />
+
       {/* Header */}
       <div className="space-y-3 max-w-2xl">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-wider">

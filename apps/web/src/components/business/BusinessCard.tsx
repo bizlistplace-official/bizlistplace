@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { IBusiness } from '@bizpockethub/shared';
+import { BusinessLogo } from './BusinessLogo';
 import { Badge } from '../ui/Badge';
 import {
   MapPin,
@@ -53,12 +54,15 @@ export function BusinessCard({ business }: BusinessCardProps) {
         </div>
       </div>
 
-      {/* Business Name */}
-      <Link href={`/business/${business.slug}`} className="group-hover:text-[#0b7a70] transition-colors">
-        <h3 className="text-lg font-bold text-slate-900 tracking-tight line-clamp-1">
-          {business.name}
-        </h3>
-      </Link>
+      {/* Business Name with Logo */}
+      <div className="flex items-center gap-3 mb-2">
+        <BusinessLogo business={business} size="md" className="flex-shrink-0 shadow-2xs" />
+        <Link href={`/business/${business.slug}`} className="group-hover:text-[#0b7a70] transition-colors min-w-0 flex-1">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight line-clamp-1">
+            {business.name}
+          </h3>
+        </Link>
+      </div>
 
       {/* Ratings & Reviews */}
       <div className="flex items-center gap-2 mt-1 mb-3 text-xs text-slate-600">

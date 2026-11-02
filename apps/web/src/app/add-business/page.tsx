@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/authContext';
 import { fetchApi } from '@/lib/api';
 import { ICategory, BUSINESS_TYPES } from '@bizpockethub/shared';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { CountrySelect } from '@/components/ui/CountrySelect';
 import { CitySelect } from '@/components/ui/CitySelect';
@@ -25,8 +26,15 @@ import {
 
 export default function AddBusinessPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [categories, setCategories] = useState<ICategory[]>([]);
+
+  // Automatically redirect unauthenticated users to login with redirect param
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirect=/add-business');
+    }
+  }, [user, authLoading, router]);
 
   // Form State
   const [name, setName] = useState('');
@@ -168,8 +176,21 @@ export default function AddBusinessPage() {
     );
   }
 
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-[55vh] flex flex-col items-center justify-center p-6 space-y-4">
+        <div className="w-10 h-10 border-4 border-[#1D68F2] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-slate-700">
+          Redirecting to login to proceed with your business listing...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <Breadcrumbs items={[{ label: 'Add Business' }]} />
+
       {/* Header */}
       <div className="space-y-3 text-center sm:text-left">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-wider">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { IBusiness, ICategory } from '@bizpockethub/shared';
 import { CategoryFilterList } from '@/components/business/CategoryFilterList';
+import { BusinessLogo } from '@/components/business/BusinessLogo';
 import {
   Star,
   MapPin,
@@ -163,9 +164,10 @@ export function FeaturedBusinessesSection({
                 const catName = biz.primaryCategory?.name || 'General Business';
 
                 return (
-                  <div
+                  <Link
                     key={biz._id || biz.slug}
-                    className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-200 hover:-translate-y-1 flex flex-col group"
+                    href={`/business/${biz.slug}`}
+                    className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-200 hover:-translate-y-1 flex flex-col group cursor-pointer"
                   >
                     {/* Card Image + Badge */}
                     <div className="relative h-40 w-full overflow-hidden bg-slate-100">
@@ -186,15 +188,18 @@ export function FeaturedBusinessesSection({
                           </span>
                         )}
                       </div>
+
+                      {/* Brand Logo (Bottom Right) */}
+                      <div className="absolute bottom-2.5 right-2.5 z-10">
+                        <BusinessLogo business={biz} size="sm" className="shadow-md bg-white border-2 border-white rounded-lg" />
+                      </div>
                     </div>
 
                     {/* Card Body */}
                     <div className="p-4 flex flex-col flex-1">
-                      <Link href={`/business/${biz.slug}`}>
-                        <h3 className="font-bold text-sm text-slate-900 leading-snug truncate group-hover:text-[#1D68F2] transition-colors">
-                          {biz.name}
-                        </h3>
-                      </Link>
+                      <h3 className="font-bold text-sm text-slate-900 leading-snug truncate group-hover:text-[#1D68F2] transition-colors">
+                        {biz.name}
+                      </h3>
 
                       {/* Category line */}
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5">
@@ -224,15 +229,12 @@ export function FeaturedBusinessesSection({
 
                       {/* View Details Button */}
                       <div className="mt-4 pt-3 border-t border-slate-50">
-                        <Link
-                          href={`/business/${biz.slug}`}
-                          className="block w-full py-1.5 px-3 text-center text-xs font-semibold text-[#1D68F2] border border-blue-200 hover:bg-blue-50/70 rounded-xl transition-colors"
-                        >
+                        <div className="block w-full py-1.5 px-3 text-center text-xs font-semibold text-[#1D68F2] border border-blue-200 group-hover:bg-blue-50/70 rounded-xl transition-colors">
                           View Details &rarr;
-                        </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

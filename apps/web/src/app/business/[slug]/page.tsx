@@ -5,7 +5,9 @@ import { notFound } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import { ReviewSection } from '@/components/business/ReviewSection';
 import { BusinessCard } from '@/components/business/BusinessCard';
-import { IBusiness, IBusinessLocation } from '@bizpockethub/shared';
+import { BusinessLogo } from '@/components/business/BusinessLogo';
+import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/Breadcrumbs';
+import { IBusiness, IBusinessLocation, POPULAR_COUNTRIES } from '@bizpockethub/shared';
 import {
   Building2,
   MapPin,
@@ -110,6 +112,48 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
       : {}),
   };
 
+  // Construct logical SEO breadcrumbs: Home > Country > City > Category > Business Name
+  const breadcrumbItems: BreadcrumbItem[] = [];
+
+  const countryCode = primaryLoc?.countryCode?.toUpperCase();
+  const countryInfo = countryCode ? POPULAR_COUNTRIES.find((c) => c.code === countryCode) : null;
+  const cityName = primaryLoc?.city;
+  const primaryCat = biz.categoryIds?.[0] as any;
+
+  if (countryInfo) {
+    breadcrumbItems.push({
+      label: countryInfo.name,
+      href: `/countries/${countryInfo.slug}`,
+    });
+
+    if (cityName) {
+      const matchedCity = countryInfo.popularCities?.find(
+        (c) => c.name.toLowerCase() === cityName.toLowerCase()
+      );
+      const citySlug = matchedCity ? matchedCity.slug : cityName.toLowerCase().replace(/\s+/g, '-');
+      breadcrumbItems.push({
+        label: cityName,
+        href: `/${countryInfo.slug}/${citySlug}`,
+      });
+    }
+  }
+
+  if (primaryCat && primaryCat.name && primaryCat.slug) {
+    breadcrumbItems.push({
+      label: primaryCat.name,
+      href: `/categories/${primaryCat.slug}`,
+    });
+  } else if (!countryInfo) {
+    breadcrumbItems.push({
+      label: 'Directory',
+      href: '/search',
+    });
+  }
+
+  breadcrumbItems.push({
+    label: biz.name,
+  });
+
   return (
     <>
       {/* Schema.org Structured Data */}
@@ -119,114 +163,100 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-          <Link href="/" className="hover:text-slate-900 transition-colors">
-            Home
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <Link href="/search" className="hover:text-slate-900 transition-colors">
-            Directory
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          {biz.categoryIds && (biz.categoryIds[0] as any)?.slug && (
-            <>
-              <Link
-                href={`/categories/${(biz.categoryIds[0] as any).slug}`}
-                className="hover:text-slate-900 transition-colors"
-              >
-                {(biz.categoryIds[0] as any).name}
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            </>
-          )}
-          <span className="text-slate-900 font-semibold truncate max-w-xs">{biz.name}</span>
-        </nav>
+        {/* Breadcrumb Navigation with SEO Schema.org */}
+        <Breadcrumbs items={breadcrumbItems} />
 
         {/* Hero Profile Header */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8">
-            <div className="space-y-4 max-w-3xl">
-              {/* Category & Verified Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {(() => {
-                  const seen = new Set<string>();
-                  const uniqueCategories = (biz.categoryIds || []).filter((cat: any) => {
-                    const identifier = typeof cat === 'object' && cat ? (cat.slug || cat._id || cat.name) : String(cat);
-                    if (!identifier || seen.has(identifier)) return false;
-                    seen.add(identifier);
-                    return true;
-                  });
-
-                  return uniqueCategories.map((cat: any, idx: number) => {
-                    const catSlug = typeof cat === 'object' && cat ? cat.slug : cat;
-                    const catName = typeof cat === 'object' && cat ? cat.name : cat;
-                    const catKey = typeof cat === 'object' && cat ? (cat._id || cat.slug || `cat_${idx}`) : `cat_${cat}_${idx}`;
-                    return (
-                      <Link
-                        key={`${catKey}-${idx}`}
-                        href={`/categories/${catSlug}`}
-                        className="text-xs font-semibold text-teal-700 bg-teal-50 px-3 py-1 rounded-md border border-teal-200 hover:bg-teal-100 transition-colors"
-                      >
-                        {catName}
-                      </Link>
-                    );
-                  });
-                })()}
-
-                {biz.verificationStatus === 'verified' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Verified Business Entity
-                  </span>
-                ) : (
-                  <Link
-                    href={`/claim-business?businessId=${biz._id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-medium border border-amber-200 hover:bg-amber-100 transition-colors"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                    Unclaimed Listing — Are you the owner? Claim it now
-                  </Link>
-                )}
+            <div className="flex flex-col sm:flex-row items-start gap-5 sm:gap-6 max-w-3xl">
+              {/* Company Logo Badge */}
+              <div className="flex-shrink-0">
+                <BusinessLogo business={biz} size="xl" className="shadow-md" />
               </div>
 
-              {/* Title & Rating */}
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight break-words">
-                  {biz.name}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 text-sm text-slate-600">
-                  <div className="flex items-center text-amber-500 font-bold">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400 mr-1" />
-                    <span>{biz.ratingAverage > 0 ? biz.ratingAverage.toFixed(1) : 'Unrated'}</span>
-                  </div>
-                  <span className="text-slate-300">•</span>
-                  <span>
-                    {biz.reviewCount} customer {biz.reviewCount === 1 ? 'review' : 'reviews'}
-                  </span>
-                  {primaryLoc && (
-                    <>
-                      <span className="text-slate-300">•</span>
-                      <span className="flex items-center gap-1 text-slate-600">
-                        <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        <span>{primaryLoc.city}, {primaryLoc.countryName || primaryLoc.countryCode}</span>
-                      </span>
-                    </>
+              <div className="space-y-4 flex-1 min-w-0">
+                {/* Category & Verified Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(() => {
+                    const seen = new Set<string>();
+                    const uniqueCategories = (biz.categoryIds || []).filter((cat: any) => {
+                      const identifier = typeof cat === 'object' && cat ? (cat.slug || cat._id || cat.name) : String(cat);
+                      if (!identifier || seen.has(identifier)) return false;
+                      seen.add(identifier);
+                      return true;
+                    });
+
+                    return uniqueCategories.map((cat: any, idx: number) => {
+                      const catSlug = typeof cat === 'object' && cat ? cat.slug : cat;
+                      const catName = typeof cat === 'object' && cat ? cat.name : cat;
+                      const catKey = typeof cat === 'object' && cat ? (cat._id || cat.slug || `cat_${idx}`) : `cat_${cat}_${idx}`;
+                      return (
+                        <Link
+                          key={`${catKey}-${idx}`}
+                          href={`/categories/${catSlug}`}
+                          className="text-xs font-semibold text-teal-700 bg-teal-50 px-3 py-1 rounded-md border border-teal-200 hover:bg-teal-100 transition-colors"
+                        >
+                          {catName}
+                        </Link>
+                      );
+                    });
+                  })()}
+
+                  {biz.verificationStatus === 'verified' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Verified Business Entity
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/claim-business?businessId=${biz._id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-medium border border-amber-200 hover:bg-amber-100 transition-colors"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                      Unclaimed Listing — Are you the owner? Claim it now
+                    </Link>
                   )}
                 </div>
-              </div>
 
-              {/* Verification Details Box */}
-              {biz.verificationStatus === 'verified' && (
-                <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="font-semibold">Biz List Place Verified Entity:</strong>{' '}
-                    {biz.verificationNotes ||
-                      'This listing has undergone business registry validation and confirmed administrative contact credentials.'}
+                {/* Title & Rating */}
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight break-words">
+                    {biz.name}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 text-sm text-slate-600">
+                    <div className="flex items-center text-amber-500 font-bold">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400 mr-1" />
+                      <span>{biz.ratingAverage > 0 ? biz.ratingAverage.toFixed(1) : 'Unrated'}</span>
+                    </div>
+                    <span className="text-slate-300">•</span>
+                    <span>
+                      {biz.reviewCount} customer {biz.reviewCount === 1 ? 'review' : 'reviews'}
+                    </span>
+                    {primaryLoc && (
+                      <>
+                        <span className="text-slate-300">•</span>
+                        <span className="flex items-center gap-1 text-slate-600">
+                          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <span>{primaryLoc.city}, {primaryLoc.countryName || primaryLoc.countryCode}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* Verification Details Box */}
+                {biz.verificationStatus === 'verified' && (
+                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 flex items-start gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-semibold">Biz List Place Verified Entity:</strong>{' '}
+                      {biz.verificationNotes ||
+                        'This listing has undergone business registry validation and confirmed administrative contact credentials.'}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Quick Action Buttons */}

@@ -138,8 +138,22 @@ mockRouter.get('/auth/me', (req: Request, res: Response) => {
 });
 
 // Categories
+const mockCategoryCache: Record<string, { data: any[]; timestamp: number }> = {};
+const MOCK_CAT_CACHE_TTL = 180_000;
+
 mockRouter.get('/categories', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'public, max-age=180, stale-while-revalidate=600');
   const codes = normalizeCountryCodes(req.query.country);
+  const cacheKey = codes.slice().sort().join(',') || '__all__';
+  const now = Date.now();
+
+  if (mockCategoryCache[cacheKey] && now - mockCategoryCache[cacheKey].timestamp < MOCK_CAT_CACHE_TTL) {
+    return res.json({
+      success: true,
+      data: mockCategoryCache[cacheKey].data,
+    });
+  }
+
   const filteredBusinesses = codes.length > 0
     ? mockBusinesses.filter((b) => matchesCountry(b, codes))
     : mockBusinesses;
@@ -159,6 +173,12 @@ mockRouter.get('/categories', (req: Request, res: Response) => {
       businessCount: count,
     };
   });
+
+  mockCategoryCache[cacheKey] = {
+    data: categoriesWithCount,
+    timestamp: now,
+  };
+
   res.json({
     success: true,
     data: categoriesWithCount,
@@ -598,56 +618,82 @@ mockRouter.get('/businesses/:slug', (req: Request, res: Response) => {
       };
     });
 
+  const bizReviews = getMockReviews(business._id);
+
   return res.json({
     success: true,
     data: {
       ...business,
       categoryIds: populatedCategories,
-      reviews: [
-        {
-          _id: 'rev_1',
-          businessId: business._id,
-          userId: { _id: 'u_1', name: 'Michael Chen' },
-          rating: 5,
-          title: 'Outstanding professionalism and service',
-          content:
-            'We contracted their team for an international project and were thoroughly impressed with their turnaround time, clear communication, and subject-matter expertise.',
-          moderationStatus: 'approved',
-          createdAt: new Date().toISOString(),
-        },
-      ],
+      reviews: bizReviews,
       related,
     },
   });
 });
 
+const inMemoryMockReviews: Record<string, any[]> = {};
+
+function getMockReviews(bizIdOrSlug: string): any[] {
+  if (!inMemoryMockReviews[bizIdOrSlug]) {
+    inMemoryMockReviews[bizIdOrSlug] = [];
+  }
+  return inMemoryMockReviews[bizIdOrSlug];
+}
+
 mockRouter.get('/businesses/:id/reviews', (req: Request, res: Response) => {
+  const bizId = req.params.id;
+  const biz = mockBusinesses.find((b) => b._id === bizId || b.slug === bizId);
+  const targetId = biz ? biz._id : bizId;
   res.json({
     success: true,
-    data: [
-      {
-        _id: 'rev_1',
-        businessId: req.params.id,
-        userId: { _id: 'u_1', name: 'Michael Chen' },
-        rating: 5,
-        title: 'Outstanding professionalism and service',
-        content:
-          'We contracted their team for an international project and were thoroughly impressed with their turnaround time, clear communication, and subject-matter expertise.',
-        moderationStatus: 'approved',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        _id: 'rev_2',
-        businessId: req.params.id,
-        userId: { _id: 'u_2', name: 'Sarah Jenkins' },
-        rating: 4,
-        title: 'Reliable and responsive team',
-        content:
-          'Transparent engagement and high attention to detail throughout our collaboration. Great to see verified listings of this caliber on Biz List Place.',
-        moderationStatus: 'approved',
-        createdAt: new Date().toISOString(),
-      },
-    ],
+    data: getMockReviews(targetId),
+  });
+});
+
+mockRouter.post('/businesses/:id/reviews', (req: Request, res: Response) => {
+  const bizId = req.params.id;
+  const biz = mockBusinesses.find((b) => b._id === bizId || b.slug === bizId);
+  const targetId = biz ? biz._id : bizId;
+  const { rating = 5, title = '', content = '', authorName = '' } = req.body || {};
+
+  const token = req.cookies?.[config.cookie.name || 'bizpockethub_jwt'] || req.cookies?.bizpockethub_token;
+  let decodedUser: any = null;
+  if (token) {
+    try {
+      decodedUser = jwt.verify(token, config.jwt.secret || 'dev-secret-key');
+    } catch {
+      // unauthenticated / guest
+    }
+  }
+
+  const reviewAuthor = (authorName && String(authorName).trim()) || (decodedUser?.name) || 'Customer';
+
+  const newReview = {
+    _id: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    businessId: targetId,
+    userId: decodedUser ? { _id: decodedUser.userId || 'u_demo', name: reviewAuthor } : null,
+    authorName: reviewAuthor,
+    rating: Math.max(1, Math.min(5, Number(rating) || 5)),
+    title: String(title || 'Helpful Customer Experience').trim(),
+    content: String(content || 'Prompt response and pleasant experience working with them.').trim(),
+    moderationStatus: 'approved',
+    createdAt: new Date().toISOString(),
+  };
+
+  const list = getMockReviews(targetId);
+  list.unshift(newReview);
+
+  if (biz) {
+    const validRatings = list.map((r) => r.rating || 5);
+    const sum = validRatings.reduce((acc, curr) => acc + curr, 0);
+    biz.reviewCount = validRatings.length;
+    biz.ratingAverage = Math.round((sum / validRatings.length) * 10) / 10;
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'Your review has been published. Thank you for your feedback!',
+    data: newReview,
   });
 });
 

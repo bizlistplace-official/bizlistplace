@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Building2, ShieldCheck, Globe, Users, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'About Biz List Place',
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 space-y-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+      <Breadcrumbs items={[{ label: 'About Us' }]} />
+
       <div className="space-y-4 text-center">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold border border-teal-200">
           <Globe className="w-3.5 h-3.5" />

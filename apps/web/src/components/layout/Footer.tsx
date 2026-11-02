@@ -24,11 +24,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand info */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="inline-flex items-center gap-3 group" aria-label="BizListPlace.com Home">
+            <Link href="/" className="inline-flex items-center gap-3 group">
               <div className="relative w-10 h-10 min-w-10 min-h-10 rounded-xl overflow-hidden shadow-md shadow-[#1D68F2]/25 group-hover:shadow-[0_0_18px_rgba(29,104,242,0.6)] transition-all duration-300 border border-blue-400/20 bg-white flex-shrink-0 flex items-center justify-center">
                 <Image
                   src="/apple-touch-icon.png"
-                  alt="BizListPlace.com Logo"
+                  alt=""
                   width={40}
                   height={40}
                   className="w-full h-full object-cover"

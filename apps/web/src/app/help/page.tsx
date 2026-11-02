@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { HelpCircle, ShieldCheck, PlusCircle, CheckCircle, Search } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -33,7 +34,9 @@ export default function HelpPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14 space-y-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <Breadcrumbs items={[{ label: 'Help Center' }]} />
+
       <div className="space-y-3 text-center sm:text-left">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-wider">
           <HelpCircle className="w-4 h-4" />

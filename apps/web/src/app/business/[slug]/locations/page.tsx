@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import { IBusiness, IBusinessLocation } from '@bizpockethub/shared';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { ChevronRight, MapPin, Phone, Mail, Building2, GitBranch } from 'lucide-react';
 
 interface LocationsPageProps {
@@ -30,17 +31,13 @@ export default async function BusinessLocationsPage({ params }: LocationsPagePro
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-        <Link href="/" className="hover:text-slate-900 transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link href={`/business/${slug}`} className="hover:text-slate-900 transition-colors">
-          {biz.name}
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-slate-900 font-semibold">Branch Locations</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: 'Directory', href: '/search' },
+          { label: biz.name, href: `/business/${slug}` },
+          { label: 'Branch Locations' },
+        ]}
+      />
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-sm space-y-3">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">

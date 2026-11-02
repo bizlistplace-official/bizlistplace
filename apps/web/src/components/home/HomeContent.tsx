@@ -93,7 +93,11 @@ const BROWSE_CATEGORIES = [
 async function LiveStatsNumber({ countryCode }: { countryCode?: string }) {
   const query = countryCode ? `?country=${encodeURIComponent(countryCode)}&limit=1` : '?limit=1';
   const businessesRes = await fetchApi<{ total: number }>(`/businesses${query}`);
-  const total = (businessesRes as any)?.total || (businessesRes as any)?.data?.length || 38;
+  const total = typeof (businessesRes as any)?.total === 'number'
+    ? (businessesRes as any).total
+    : Array.isArray((businessesRes as any)?.data)
+    ? (businessesRes as any).data.length
+    : 0;
   return <>{total}</>;
 }
 
@@ -134,13 +138,11 @@ interface HomeContentProps {
 export function HomeContent({ country }: HomeContentProps) {
   return (
     <div className="bg-[#FAFBFD] text-slate-900 pb-16 overflow-x-hidden">
-      {/* 1. Hero Search Section with high z-index to allow downward dropdowns to float above stats bar */}
-      <div className="relative z-30">
-        <SearchHero country={country} />
-      </div>
+      {/* 1. Hero Search Section */}
+      <SearchHero country={country} />
 
       {/* 2. Floating Stats / Trust Bar */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-7 sm:-mt-8 relative z-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-7 sm:-mt-8 relative z-20">
         <div className="bg-white rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.05)] border border-slate-100 p-4 sm:p-6 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:divide-x divide-slate-100">
           {/* Stat 1: Real Businesses Listed */}
           <div className="flex items-center gap-2.5 sm:gap-3.5 pl-0">
@@ -149,7 +151,7 @@ export function HomeContent({ country }: HomeContentProps) {
             </div>
             <div className="min-w-0">
               <div className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                <Suspense fallback={<span>38</span>}>
+                <Suspense fallback={<span>0</span>}>
                   <LiveStatsNumber countryCode={country?.code} />
                 </Suspense>
               </div>
@@ -411,6 +413,7 @@ export function HomeContent({ country }: HomeContentProps) {
           </div>
           <Link
             href="/categories"
+            prefetch={true}
             className="text-xs sm:text-sm font-semibold text-[#1D68F2] hover:text-[#1557D0] flex items-center gap-1 transition-colors self-start sm:self-auto"
           >
             <span>View All Categories</span>
@@ -429,6 +432,7 @@ export function HomeContent({ country }: HomeContentProps) {
               <Link
                 key={cat.name}
                 href={catHref}
+                prefetch={true}
                 className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-xl hover:border-blue-200 transition-all duration-300 hover:-translate-y-1.5 flex flex-col items-center text-center group"
               >
                 <div

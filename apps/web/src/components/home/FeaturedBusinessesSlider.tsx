@@ -8,14 +8,13 @@ import {
   ChevronRight,
   MapPin,
   Star,
-  Phone,
-  MessageCircle,
   CheckCircle2,
   ArrowRight,
   Building2,
   Plus,
 } from 'lucide-react';
 import { IBusiness } from '@bizpockethub/shared';
+import { BusinessLogo } from '@/components/business/BusinessLogo';
 
 const CATEGORY_IMAGE_MAP: Record<string, string> = {
   education: '/images/harvard.svg',
@@ -57,7 +56,6 @@ const PHOTO_POOL = [
 
 function getListingPhoto(biz: IBusiness, index: number): string {
   if (biz.coverImageUrl) return biz.coverImageUrl;
-  if (biz.logoUrl && !biz.logoUrl.endsWith('.svg')) return biz.logoUrl;
 
   const primarySlug = biz.primaryCategory?.slug || '';
   if (CATEGORY_IMAGE_MAP[primarySlug]) {
@@ -133,6 +131,8 @@ export function FeaturedBusinessesSlider({
         city: city,
         country: country,
         photo: photo,
+        logoUrl: biz.logoUrl,
+        website: biz.website,
         rating: rating,
         reviews: reviews,
         phone: phone,
@@ -143,13 +143,19 @@ export function FeaturedBusinessesSlider({
     });
   }, [initialBusinesses]);
 
-  // 6 businesses per slide (2 rows of 3 columns), 6 slides total (6,6,6,6,6,6 then repeat)
+  // 6 businesses per slide (2 rows of 3 columns)
   const itemsPerSlide = 6;
-  const totalSlides = 6;
+  const totalSlides = useMemo(() => Math.max(1, Math.ceil(items.length / itemsPerSlide)), [items.length]);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (currentSlide >= totalSlides) {
+      setCurrentSlide(0);
+    }
+  }, [totalSlides, currentSlide]);
 
   // Auto-play infinite rotation: 6, 6, 6, 6, 6, 6 then repeat
   useEffect(() => {
@@ -190,7 +196,7 @@ export function FeaturedBusinessesSlider({
             <Building2 className="w-8 h-8" />
           </div>
           <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            No businesses listed in {country ? country.name : 'this region'} yet
+            {country ? `No businesses listed in ${country.name} yet` : 'No businesses listed yet'}
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mt-2 mb-6 leading-relaxed">
             Be the very first company or service provider to list in {country ? country.name : 'this directory'}. It takes less than 2 minutes and is 100% free!
@@ -302,9 +308,10 @@ export function FeaturedBusinessesSlider({
           }`}
         >
           {visibleItems.map((biz) => (
-            <div
+            <Link
               key={biz.id}
-              className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-lg hover:border-blue-200 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+              href={`/business/${biz.slug}`}
+              className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-lg hover:border-blue-300 transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
             >
               {/* Card Image Banner with Two Floating Badges - Compact Height */}
               <div className="relative h-36 sm:h-40 w-full overflow-hidden bg-slate-100">
@@ -313,6 +320,7 @@ export function FeaturedBusinessesSlider({
                   alt={biz.name}
                   fill
                   sizes="(max-width: 768px) 100vw, 33vw"
+                  unoptimized={biz.photo.startsWith('http')}
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
@@ -328,6 +336,11 @@ export function FeaturedBusinessesSlider({
                     {biz.city}
                   </span>
                 </div>
+
+                {/* Brand Logo (Bottom Right) */}
+                <div className="absolute bottom-2.5 right-2.5 z-10">
+                  <BusinessLogo business={biz} size="sm" className="shadow-md bg-white border-2 border-white rounded-lg" />
+                </div>
               </div>
 
               {/* Card Body - Compact Spacing */}
@@ -335,11 +348,9 @@ export function FeaturedBusinessesSlider({
                 <div className="space-y-1.5">
                   {/* Title & Verified Badge */}
                   <div className="flex items-center justify-between gap-1.5">
-                    <Link href={`/business/${biz.slug}`}>
-                      <h3 className="text-base sm:text-lg font-bold text-[#1D68F2] hover:text-[#1557D0] transition-colors line-clamp-1">
-                        {biz.name}
-                      </h3>
-                    </Link>
+                    <h3 className="text-base sm:text-lg font-bold text-[#1D68F2] group-hover:text-[#1557D0] transition-colors line-clamp-1">
+                      {biz.name}
+                    </h3>
                     <CheckCircle2 className="w-4 h-4 text-[#1D68F2] fill-blue-50 flex-shrink-0" />
                   </div>
 
@@ -382,44 +393,17 @@ export function FeaturedBusinessesSlider({
                   </p>
                 </div>
 
-                {/* Bottom Action Area - Compact buttons */}
-                <div className="space-y-2 pt-1">
-                  {/* WhatsApp & Call Buttons Row */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* WhatsApp */}
-                    <a
-                      href={`https://wa.me/${biz.cleanPhone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-700 hover:bg-emerald-100/80 font-semibold text-xs transition-colors shadow-2xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600/20" />
-                      <span>WhatsApp</span>
-                    </a>
-
-                    {/* Call */}
-                    <a
-                      href={`tel:${biz.cleanPhone}`}
-                      className="flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-2.5 rounded-xl border border-blue-200 bg-blue-50/70 text-[#1D68F2] hover:bg-blue-100/80 font-semibold text-xs transition-colors shadow-2xs"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-[#1D68F2] fill-[#1D68F2]/20" />
-                      <span>Call</span>
-                    </a>
-                  </div>
-
-                  {/* View Details Bar */}
-                  <Link
-                    href={`/business/${biz.slug}`}
-                    className="w-full bg-slate-50 hover:bg-blue-50/70 rounded-xl py-2 px-3.5 flex items-center justify-between text-xs font-bold text-[#1D68F2] hover:text-[#1557D0] transition-all group/btn border border-slate-100"
-                  >
+                {/* Bottom Action Area - Full Card Link Footer */}
+                <div className="pt-2">
+                  <div className="w-full bg-slate-50 group-hover:bg-blue-50/70 rounded-xl py-2 px-3.5 flex items-center justify-between text-xs font-bold text-[#1D68F2] group-hover:text-[#1557D0] transition-all border border-slate-100 group-hover:border-blue-200">
                     <span>View Details</span>
-                    <div className="w-5 h-5 rounded-full bg-white shadow-2xs border border-slate-200 flex items-center justify-center text-slate-400 group-hover/btn:text-[#1D68F2] group-hover/btn:border-blue-200 transition-colors">
+                    <div className="w-5 h-5 rounded-full bg-white shadow-2xs border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-[#1D68F2] group-hover:border-blue-200 transition-colors">
                       <ChevronRight className="w-3 h-3" />
                     </div>
-                  </Link>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

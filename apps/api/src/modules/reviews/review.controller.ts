@@ -54,8 +54,8 @@ export class ReviewController {
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const user = req.user!;
-      const { rating, title, content } = req.body;
+      const user = req.user;
+      const { rating, title, content, authorName } = req.body;
 
       const business = await Business.findById(id);
       if (!business) {
@@ -63,28 +63,31 @@ export class ReviewController {
         return;
       }
 
-      // Check if user already submitted a review
-      const existing = await Review.findOne({ businessId: id, userId: user._id });
-      if (existing) {
-        res.status(400).json({
-          success: false,
-          message: 'You have already submitted a review for this business.',
-        });
-        return;
-      }
+      if (user) {
+        // Check if authenticated user already submitted a review
+        const existing = await Review.findOne({ businessId: id, userId: user._id });
+        if (existing) {
+          res.status(400).json({
+            success: false,
+            message: 'You have already submitted a review for this business.',
+          });
+          return;
+        }
 
-      // Check owner cannot review own business
-      if (business.ownerId && business.ownerId.toString() === user._id.toString()) {
-        res.status(400).json({
-          success: false,
-          message: 'Business owners cannot review their own listing.',
-        });
-        return;
+        // Check owner cannot review own business
+        if (business.ownerId && business.ownerId.toString() === user._id.toString()) {
+          res.status(400).json({
+            success: false,
+            message: 'Business owners cannot review their own listing.',
+          });
+          return;
+        }
       }
 
       const review = await Review.create({
         businessId: id,
-        userId: user._id,
+        userId: user ? user._id : undefined,
+        authorName: (authorName && typeof authorName === 'string' && authorName.trim()) || (user ? user.name : 'Customer'),
         rating,
         title,
         content,
@@ -95,7 +98,8 @@ export class ReviewController {
 
       await AuditService.log('review_created', 'review', review._id.toString(), {
         rating,
-      }, user._id, req.ip);
+        isGuest: !user,
+      }, user?._id?.toString() || null, req.ip);
 
       res.status(201).json({
         success: true,
@@ -118,7 +122,7 @@ export class ReviewController {
         return;
       }
 
-      const isAuthor = review.userId.toString() === user._id.toString();
+      const isAuthor = Boolean(review.userId && user && review.userId.toString() === user._id.toString());
       const isAdmin = user.role === 'admin';
 
       if (!isAuthor && !isAdmin) {

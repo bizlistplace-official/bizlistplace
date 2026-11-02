@@ -127,6 +127,8 @@ const BusinessLocationSchema = new Schema<IBusinessLocationDocument>(
 // Indexes
 BusinessLocationSchema.index({ businessId: 1, branchSlug: 1 }, { unique: true });
 BusinessLocationSchema.index({ countryCode: 1, city: 1 });
+BusinessLocationSchema.index({ countryCode: 1, businessId: 1 });
+BusinessLocationSchema.index({ businessId: 1, isPrimary: -1 });
 BusinessLocationSchema.index({ coordinates: '2dsphere' }, { sparse: true });
 
 export const BusinessLocation = model<IBusinessLocationDocument>(

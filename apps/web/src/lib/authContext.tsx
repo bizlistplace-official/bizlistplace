@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   const refreshUser = async () => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('biz_auth_token')) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetchApi<{ user: IUser }>('/auth/me');
       if (res.success && res.data?.user) {

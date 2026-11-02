@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/authContext';
 import { fetchApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { ShieldCheck, CheckCircle, AlertCircle, Building2, Phone, Mail, FileText } from 'lucide-react';
 import { IBusiness } from '@bizpockethub/shared';
 
@@ -105,7 +106,9 @@ function ClaimBusinessContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <Breadcrumbs items={[{ label: 'Claim Business' }]} />
+
       {/* Header */}
       <div className="space-y-3 text-center sm:text-left">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-wider">

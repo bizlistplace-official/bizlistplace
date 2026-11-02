@@ -4,6 +4,18 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   devIndicators: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+  },
   experimental: {
     optimizePackageImports: ['lucide-react', '@bizpockethub/shared'],
   },
@@ -32,7 +44,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'private, no-cache, max-age=0, must-revalidate',
+            value: 'public, max-age=15, stale-while-revalidate=60',
           },
         ],
       },
@@ -41,7 +53,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'private, no-cache, max-age=0, must-revalidate',
+            value: 'public, max-age=60, stale-while-revalidate=300',
           },
         ],
       },
@@ -50,7 +62,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=300, stale-while-revalidate=600',
+            value: 'public, max-age=180, stale-while-revalidate=600',
           },
         ],
       },
@@ -59,7 +71,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'private, no-cache, max-age=0, must-revalidate',
+            value: 'public, max-age=180, stale-while-revalidate=600',
           },
         ],
       },

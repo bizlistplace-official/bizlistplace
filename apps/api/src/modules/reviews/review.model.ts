@@ -3,7 +3,8 @@ import { ModerationStatus, MODERATION_STATUSES } from '@bizpockethub/shared';
 
 export interface IReviewDocument extends Document {
   businessId: Types.ObjectId;
-  userId: Types.ObjectId;
+  userId?: Types.ObjectId;
+  authorName?: string;
   rating: number;
   title: string;
   content: string;
@@ -23,8 +24,14 @@ const ReviewSchema = new Schema<IReviewDocument>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
       index: true,
+    },
+    authorName: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: 'Customer',
     },
     rating: {
       type: Number,
@@ -56,7 +63,7 @@ const ReviewSchema = new Schema<IReviewDocument>(
   }
 );
 
-// Prevent duplicate review per user on the same business
-ReviewSchema.index({ businessId: 1, userId: 1 }, { unique: true });
+// Prevent duplicate review per user on the same business (sparse so guest reviews without userId are allowed)
+ReviewSchema.index({ businessId: 1, userId: 1 }, { unique: true, sparse: true });
 
 export const Review = model<IReviewDocument>('Review', ReviewSchema);

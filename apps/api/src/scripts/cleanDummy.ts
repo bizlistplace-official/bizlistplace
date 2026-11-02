@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../config/db';
 import { User } from '../modules/users/user.model';
 import { Category } from '../modules/categories/category.model';
@@ -8,8 +9,13 @@ import { ClaimRequest } from '../modules/claims/claim.model';
 import { Report } from '../modules/reports/report.model';
 
 async function cleanDummyData() {
-  console.log('🧹 Connecting to MongoDB Atlas to clean dummy data...');
+  console.log('🧹 Connecting to MongoDB to clean dummy data...');
   await connectDB();
+
+  if (mongoose.connection.readyState !== 1) {
+    console.log('ℹ️ MongoDB is offline. In-memory mock dummy data has already been cleaned in mockData.ts.');
+    process.exit(0);
+  }
 
   // 1. Delete all businesses
   const deletedBusinesses = await Business.deleteMany({});

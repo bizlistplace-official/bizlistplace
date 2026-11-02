@@ -95,7 +95,8 @@ export interface IBusiness {
 export interface IReview {
   _id: string;
   businessId: string | IBusiness;
-  userId: string | IUser;
+  userId?: string | IUser | null;
+  authorName?: string;
   rating: number; // 1-5
   title: string;
   content: string;

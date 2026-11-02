@@ -248,7 +248,7 @@ export function CountrySelect({
               {selectedCountry.flag}
             </span>
           ) : (
-            <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />
           )}
 
           {/* Country Name */}

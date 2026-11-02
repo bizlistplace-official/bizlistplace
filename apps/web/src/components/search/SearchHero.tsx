@@ -61,7 +61,7 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
 
   return (
     <div
-      className="relative z-30 overflow-visible bg-slate-900 min-h-[560px] sm:min-h-[580px] lg:h-[calc(100svh-72px)] lg:min-h-[calc(100svh-72px)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-0"
+      className="relative overflow-visible bg-slate-900 min-h-[560px] sm:min-h-[580px] lg:h-[calc(100svh-72px)] lg:min-h-[calc(100svh-72px)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-0"
     >
       {/* Background Hero Image with panoramic daytime city skyline matching screenshot */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -81,7 +81,7 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
       <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/35 to-slate-900/35 pointer-events-none" />
 
       {/* Hero Content Container matching exact screenshot */}
-      <div className="relative max-w-5xl mx-auto w-full z-20 text-center">
+      <div className="relative max-w-5xl mx-auto w-full z-30 text-center">
         {/* Eyebrow */}
         <div className="text-xs sm:text-[13px] font-bold text-slate-900 tracking-[0.14em] uppercase mb-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
           {country?.hero?.eyebrow || 'GLOBAL BUSINESS DIRECTORY'}
@@ -93,7 +93,7 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
             <>
               {country.hero.headingPrefix} <br className="hidden sm:inline" />
               <span className="text-[#1D68F2]">
-                {country.flag} {country.hero.headingHighlight}
+                {country.hero.headingHighlight}
               </span>
             </>
           ) : (

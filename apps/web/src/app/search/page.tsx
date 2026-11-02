@@ -5,6 +5,8 @@ import { BusinessCard } from '@/components/business/BusinessCard';
 import { Pagination } from '@/components/ui/Pagination';
 import { CategoryFilterList } from '@/components/business/CategoryFilterList';
 import { SearchFilterPanel } from '@/components/search/SearchFilterPanel';
+import { SearchTopBar } from '@/components/search/SearchTopBar';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { IBusiness, ICategory } from '@bizpockethub/shared';
 import { Search, Filter, X, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
@@ -64,15 +66,53 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const hasFilters = Boolean(q || category || country || city || businessType || verifiedOnly);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs
+        items={
+          hasFilters
+            ? [
+                { label: 'Directory', href: '/search' },
+                {
+                  label: q
+                    ? `Results for "${q}"`
+                    : category
+                    ? categories.find((c) => c.slug === category)?.name || category
+                    : country
+                    ? `Country: ${country}`
+                    : city
+                    ? `City: ${city}`
+                    : 'Search Results',
+                },
+              ]
+            : [{ label: 'Directory' }]
+        }
+      />
+
       {/* Header */}
-      <div className="mb-8 space-y-2">
+      <div className="mb-6 space-y-2">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           {q ? `Search Results for "${q}"` : 'Worldwide Business Directory'}
         </h1>
         <p className="text-slate-500 text-sm">
           Showing {businesses.length} of {pagination.total} verified companies and commercial listings
         </p>
+      </div>
+
+      {/* Top Search & Filter Bar */}
+      <div className="mb-8">
+        <SearchTopBar
+          initialQuery={q}
+          initialCategory={category}
+          initialCountry={country}
+          initialCity={city}
+          categories={categories}
+          preserveParams={{
+            businessType,
+            verifiedOnly: verifiedOnly ? 'true' : '',
+            sort,
+          }}
+        />
       </div>
 
       {/* Main Grid: Filters Sidebar + Results */}

@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { fetchApi } from '@/lib/api';
 import { ICategory, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 import type { LucideIcon } from 'lucide-react';
@@ -134,6 +135,7 @@ async function CategoriesList() {
           <Link
             key={cat.slug}
             href={`/categories/${cat.slug}`}
+            prefetch={true}
             className="bg-white border border-slate-200 hover:border-[#1a56c5]/50 rounded-2xl p-5 shadow-xs hover:shadow-lg transition-all duration-200 hover:-translate-y-1 group flex flex-col justify-between"
           >
             <div className="space-y-3">
@@ -186,7 +188,10 @@ async function CategoriesList() {
 
 export default function CategoriesPage() {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 overflow-x-hidden">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 overflow-x-hidden">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs items={[{ label: 'Categories' }]} />
+
       {/* Centered Header with Equal Left and Right Spacing */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-[#1a56c5] text-xs font-bold tracking-wide uppercase shadow-xs">

@@ -197,6 +197,7 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className={`group relative flex items-center px-2 min-[1040px]:px-2.5 2xl:px-3 py-1.5 xl:py-2 rounded-xl text-[0.82rem] min-[1040px]:text-[0.85rem] 2xl:text-[0.9rem] font-semibold whitespace-nowrap transition-all duration-200 ${
                     isActive
                       ? 'text-[#1D68F2] bg-blue-50/80 shadow-xs'
@@ -296,6 +297,7 @@ export function Navbar() {
                             return (
                               <Link
                                 key={item.code}
+                                prefetch={true}
                                 ref={(el) => {
                                   itemRefs.current[index] = el;
                                 }}
@@ -326,6 +328,7 @@ export function Navbar() {
 
                         <div className="mt-2 pt-2 border-t border-slate-100 px-2">
                           <Link
+                            prefetch={true}
                             ref={(el) => {
                               itemRefs.current[DIRECTORY_ITEMS.length] = el;
                             }}
@@ -358,6 +361,7 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className={`group relative flex items-center px-2 min-[1040px]:px-2.5 2xl:px-3 py-1.5 xl:py-2 rounded-xl text-[0.82rem] min-[1040px]:text-[0.85rem] 2xl:text-[0.9rem] font-semibold whitespace-nowrap transition-all duration-200 ${
                     isActive
                       ? 'text-[#1D68F2] bg-blue-50/80 shadow-xs'
@@ -422,7 +426,7 @@ export function Navbar() {
                 </Link>
 
                 <Link
-                  href="/add-business"
+                  href="/login?redirect=/add-business"
                   className="flex items-center gap-1 min-[1040px]:gap-1.5 px-2.5 min-[1040px]:px-3.5 xl:px-4 py-1.5 xl:py-2 text-[0.82rem] min-[1040px]:text-[0.85rem] xl:text-[0.88rem] font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap flex-shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 xl:w-4 xl:h-4 stroke-[2.5]" />
@@ -497,6 +501,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   isActive
@@ -557,6 +562,7 @@ export function Navbar() {
                     <Link
                       key={item.code}
                       href={item.href}
+                      prefetch={true}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
                         isActive
@@ -595,6 +601,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   isActive
@@ -662,7 +669,7 @@ export function Navbar() {
                   Log in
                 </Link>
                 <Link
-                  href="/add-business"
+                  href="/login?redirect=/add-business"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-1 text-center py-2.5 text-xs font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl shadow-sm transition-colors"
                 >

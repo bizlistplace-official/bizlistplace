@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
+import mongoose from 'mongoose';
 import { app } from '../app';
 import { connectDB, disconnectDB } from '../config/db';
 import { User } from '../modules/users/user.model';
@@ -19,11 +20,13 @@ describe('Biz List Place API Integration Tests', () => {
   beforeAll(async () => {
     process.env.USE_MEMORY_DB = 'true';
     await connectDB();
-    await User.deleteMany({});
-    await Category.deleteMany({});
-    await Business.deleteMany({});
-    await BusinessLocation.deleteMany({});
-    await Review.deleteMany({});
+    if (mongoose.connection.readyState === 1) {
+      await User.deleteMany({});
+      await Category.deleteMany({});
+      await Business.deleteMany({});
+      await BusinessLocation.deleteMany({});
+      await Review.deleteMany({});
+    }
   });
 
   afterAll(async () => {
@@ -50,7 +53,9 @@ describe('Biz List Place API Integration Tests', () => {
     expect(adminRes.body.data.user.passwordHash).toBeUndefined(); // Private field never exposed!
 
     // Upgrade directly in db for test
-    await User.findByIdAndUpdate(adminRes.body.data.user._id, { role: 'admin' });
+    if (mongoose.connection.readyState === 1) {
+      await User.findByIdAndUpdate(adminRes.body.data.user._id, { role: 'admin' });
+    }
     adminToken = adminRes.body.data.token;
 
     // Register Owner

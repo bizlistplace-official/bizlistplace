@@ -91,6 +91,7 @@ export function CategoryFilterList({
         ) : (
           <Link
             href={getHref('')}
+            prefetch={true}
             className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm transition-all ${
               !selectedCategory
                 ? 'bg-[#EAF8F5] text-[#065F56] font-bold shadow-xs'
@@ -136,6 +137,7 @@ export function CategoryFilterList({
             <Link
               key={cat.slug || cat._id}
               href={getHref(cat.slug)}
+              prefetch={true}
               className={`w-full flex items-center justify-between px-4 py-2 rounded-2xl text-sm transition-all group ${
                 isSelected
                   ? 'bg-[#EAF8F5] text-[#065F56] font-bold shadow-xs'

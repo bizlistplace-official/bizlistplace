@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
-import { Building, ChevronDown, Check, Search, X, Loader2 } from 'lucide-react';
+import { Building, MapPin, ChevronDown, Check, Search, X, Loader2 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 
 export interface CityItem {
@@ -302,7 +302,7 @@ export function CitySelect({
         } ${isOpen ? 'border-[#1D68F2] ring-2 ring-[#1D68F2]/20' : ''} ${triggerClassName}`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <Building className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
 
           {/* City label or prompt */}
           <span

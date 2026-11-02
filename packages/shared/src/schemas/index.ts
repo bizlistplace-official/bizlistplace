@@ -92,6 +92,7 @@ export const CreateReviewSchema = z.object({
   rating: z.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating cannot exceed 5'),
   title: z.string().min(3, 'Review headline must be at least 3 characters').max(100),
   content: z.string().min(15, 'Review content must be at least 15 characters').max(1500),
+  authorName: z.string().max(80).optional(),
 });
 export type CreateReviewInput = z.infer<typeof CreateReviewSchema>;
 

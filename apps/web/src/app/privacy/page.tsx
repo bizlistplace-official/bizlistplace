@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { Shield } from 'lucide-react';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <Breadcrumbs items={[{ label: 'Privacy Policy' }]} />
+
       <div className="space-y-2">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-wider">
           <Shield className="w-4 h-4" />

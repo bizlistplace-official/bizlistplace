@@ -204,6 +204,9 @@ BusinessSchema.index({ countryCode: 1, listingStatus: 1, isFeatured: -1, created
 BusinessSchema.index({ countryCode: 1, listingStatus: 1, ratingAverage: -1 });
 BusinessSchema.index({ listingStatus: 1, isFeatured: -1, createdAt: -1 });
 BusinessSchema.index({ listingStatus: 1, categoryIds: 1 });
+BusinessSchema.index({ categoryIds: 1, listingStatus: 1, isFeatured: -1, createdAt: -1 });
+BusinessSchema.index({ categoryIds: 1, listingStatus: 1, ratingAverage: -1 });
+BusinessSchema.index({ listingStatus: 1, verificationStatus: 1, createdAt: -1 });
 BusinessSchema.index({ listingStatus: 1, ratingAverage: -1 });
 
 export const Business = model<IBusinessDocument>('Business', BusinessSchema);

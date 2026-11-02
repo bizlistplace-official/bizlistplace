@@ -17,30 +17,54 @@ export async function connectDB(): Promise<typeof mongoose> {
     return mongoose;
   }
 
-  // Try standard connection first if configured
-  if (process.env.MONGODB_URI && process.env.MONGODB_URI !== 'mongodb://127.0.0.1:27017/bizpockethub') {
+  // 1. If explicit in-memory DB requested (e.g. during integration tests)
+  if (process.env.USE_MEMORY_DB === 'true') {
     try {
-      console.log('Connecting to external MongoDB Atlas...');
-      const conn = await mongoose.connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 2000,
-      });
-      console.log(`Connected to MongoDB Atlas: ${conn.connection.host}`);
+      console.log('USE_MEMORY_DB=true: Starting embedded in-memory MongoDB...');
+      mongoMemoryServer = await MongoMemoryServer.create();
+      const uri = mongoMemoryServer.getUri();
+      const conn = await mongoose.connect(uri);
+      console.log(`Connected to embedded MongoDB at ${uri}`);
       return conn;
-    } catch (err) {
-      console.warn('External MongoDB connection failed, falling back to embedded database');
+    } catch (err: any) {
+      console.warn('⚠️ Embedded MongoDB unavailable, falling back to mock mode.');
+      mongoose.set('bufferCommands', false);
+      mongoose.set('bufferTimeoutMS', 1000);
+      return mongoose;
     }
   }
 
-  // Try local MongoDB with short timeout
+  // 2. Try external MongoDB Atlas if configured
+  if (process.env.MONGODB_URI && process.env.MONGODB_URI !== 'mongodb://127.0.0.1:27017/bizpockethub') {
+    try {
+      console.log('Connecting to external MongoDB Atlas...');
+      const connectPromise = mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 2500,
+      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Connection/DNS timeout (3s)')), 3000)
+      );
+      const conn = await Promise.race([connectPromise, timeoutPromise]);
+      console.log(`Connected to MongoDB Atlas: ${conn.connection.host}`);
+      return conn;
+    } catch (err: any) {
+      console.warn(`External MongoDB connection failed (${err?.message || err}), falling back...`);
+    }
+  }
+
+  // 3. Try local MongoDB with short timeout
+  const localUri = 'mongodb://127.0.0.1:27017/bizpockethub';
   try {
-    const conn = await mongoose.connect(config.mongodb.uri, {
+    const conn = await mongoose.connect(localUri, {
       serverSelectionTimeoutMS: 1500,
     });
-    console.log(`Connected to local MongoDB at ${config.mongodb.uri}`);
+    console.log(`Connected to local MongoDB at ${localUri}`);
     return conn;
   } catch {
     if (process.env.USE_MEMORY_DB === 'false') {
       console.log('USE_MEMORY_DB=false: Running without active MongoDB connection (Standalone fallback mode active).');
+      mongoose.set('bufferCommands', false);
+      mongoose.set('bufferTimeoutMS', 1000);
       return mongoose;
     }
 

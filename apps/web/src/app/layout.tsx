@@ -90,42 +90,14 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function() {
-                try {
-                  var clean = function(node) {
-                    if (node && node.removeAttribute) {
-                      if (node.hasAttribute('bis_skin_checked')) node.removeAttribute('bis_skin_checked');
-                      if (node.hasAttribute('bis_register')) node.removeAttribute('bis_register');
-                    }
-                  };
-                  var observer = new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                      var m = mutations[i];
-                      if (m.type === 'attributes') {
-                        var name = m.attributeName;
-                        if (name && (name.indexOf('bis_') === 0 || name.indexOf('__processed_') === 0)) {
-                          m.target.removeAttribute(name);
-                        }
-                      } else if (m.type === 'childList') {
-                        for (var j = 0; j < m.addedNodes.length; j++) {
-                          clean(m.addedNodes[j]);
-                        }
-                      }
-                    }
+              try {
+                document.addEventListener('DOMContentLoaded', function() {
+                  document.querySelectorAll('[bis_skin_checked], [bis_register]').forEach(function(el) {
+                    el.removeAttribute('bis_skin_checked');
+                    el.removeAttribute('bis_register');
                   });
-                  observer.observe(document.documentElement, {
-                    attributes: true,
-                    subtree: true,
-                    childList: true
-                  });
-                  document.addEventListener('DOMContentLoaded', function() {
-                    document.querySelectorAll('[bis_skin_checked], [bis_register]').forEach(function(el) {
-                      el.removeAttribute('bis_skin_checked');
-                      el.removeAttribute('bis_register');
-                    });
-                  });
-                } catch(e) {}
-              })();
+                });
+              } catch(e) {}
             `,
           }}
         />
