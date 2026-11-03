@@ -455,9 +455,13 @@ mockRouter.post('/businesses', (req: Request, res: Response) => {
   const rawName = body.name || 'New Business Listing';
   const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const derivedCountryCode = (body.countryCode || body.primaryLocation?.countryCode || 'PK').toUpperCase();
+  const currentUserId = (req as any).user?.id || (req as any).user?._id || mockCurrentUser?._id || 'mock-user-1';
+  const userRole = (req as any).user?.role || mockCurrentUser?.role || 'user';
+  const listingStatus = userRole === 'admin' ? 'published' : 'pending';
 
   const newBiz: any = {
     _id: `biz_${Date.now()}`,
+    ownerId: currentUserId,
     name: rawName,
     slug: slug,
     description: body.description || '',
@@ -466,15 +470,15 @@ mockRouter.post('/businesses', (req: Request, res: Response) => {
     contactEmail: body.contactEmail || '',
     phone: body.phone || '+1 (555) 000-0000',
     businessType: body.businessType || 'physical',
-    listingStatus: 'published',
-    verificationStatus: 'verified',
+    listingStatus: listingStatus,
+    verificationStatus: 'unverified',
     countryCode: derivedCountryCode,
-    isFeatured: true,
-    ratingAverage: 5.0,
-    reviewCount: body.reviewCount || 1,
+    isFeatured: false,
+    ratingAverage: 0,
+    reviewCount: 0,
     categoryIds: body.categoryIds || ['education'],
     primaryCategory: mockCategories.find((c) => c._id === body.primaryCategoryId || c.slug === body.primaryCategoryId) || mockCategories[0],
-    publishedAt: new Date().toISOString(),
+    publishedAt: listingStatus === 'published' ? new Date().toISOString() : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     primaryLocation: body.primaryLocation || {
@@ -482,15 +486,22 @@ mockRouter.post('/businesses', (req: Request, res: Response) => {
       countryName: body.countryName || (derivedCountryCode === 'PK' ? 'Pakistan' : derivedCountryCode === 'GB' ? 'United Kingdom' : 'United States'),
       countryCode: derivedCountryCode,
     },
-    locations: [],
+    locations: body.primaryLocation ? [body.primaryLocation] : [],
   };
 
   mockBusinesses.unshift(newBiz);
 
   res.status(201).json({
     success: true,
-    data: newBiz,
-    message: 'Business listing created successfully.',
+    data: {
+      business: newBiz,
+      location: newBiz.primaryLocation,
+      ...newBiz,
+    },
+    message:
+      listingStatus === 'published'
+        ? 'Listing created and published.'
+        : 'Your business has been submitted successfully for review.',
   });
 });
 
@@ -758,11 +769,18 @@ mockRouter.post('/auth/logout', (req: Request, res: Response) => {
 
 // Owner dashboard endpoints
 mockRouter.get('/owner/businesses', (req: Request, res: Response) => {
+  const currentUserId = (req as any).user?.id || (req as any).user?._id || mockCurrentUser?._id || 'mock-user-1';
+  const userBiz = mockBusinesses.filter((b) => b.ownerId === currentUserId);
+  const others = mockBusinesses.filter((b) => b.ownerId !== currentUserId);
+  const data = userBiz.length > 0
+    ? [...userBiz, ...others.slice(0, Math.max(0, 3 - userBiz.length))]
+    : mockBusinesses.slice(0, 3);
+
   res.json({
     success: true,
-    data: mockBusinesses.slice(0, 3),
+    data,
     pagination: {
-      total: 3,
+      total: data.length,
       page: 1,
       limit: 12,
       totalPages: 1,

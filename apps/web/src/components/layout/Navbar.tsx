@@ -13,13 +13,29 @@ import {
   Globe2,
   Mail,
   Plus,
+  PlusCircle,
   Shield,
   Menu,
   X,
   LogOut,
   LayoutDashboard,
   ChevronDown,
+  User,
 } from 'lucide-react';
+
+function getInitials(name?: string, email?: string): string {
+  if (name && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+  if (email && email.trim()) {
+    return email.slice(0, 2).toUpperCase();
+  }
+  return 'U';
+}
 
 const PRIMARY_NAV = [
   { href: '/', label: 'Home', icon: Home },
@@ -43,7 +59,9 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [directoriesOpen, setDirectoriesOpen] = useState(false);
   const [mobileDirectoriesOpen, setMobileDirectoriesOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const directoriesRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -83,13 +101,17 @@ export function Navbar() {
     setMobileMenuOpen(false);
     closeDropdown(true);
     setMobileDirectoriesOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
 
-  // Close directories dropdown on outside click
+  // Close directories & user dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (directoriesRef.current && !directoriesRef.current.contains(e.target as Node)) {
         closeDropdown(true);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -380,41 +402,133 @@ export function Navbar() {
           {/* Right Action Buttons - securely contained within header on all screen sizes */}
           <div className="hidden min-[900px]:flex items-center gap-1 min-[1040px]:gap-1.5 xl:gap-2 flex-shrink-0">
             {user ? (
-              <div className="flex items-center gap-1 min-[1040px]:gap-1.5 xl:gap-2">
-                {user.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-1 px-2 min-[1040px]:px-2.5 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-all hover:shadow-xs whitespace-nowrap"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Admin</span>
-                  </Link>
-                )}
-
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-1.5 px-2.5 min-[1040px]:px-3 xl:px-3.5 py-1.5 xl:py-2 text-[0.82rem] min-[1040px]:text-[0.85rem] xl:text-[0.88rem] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-                >
-                  <LayoutDashboard className="w-3.5 h-3.5 min-[1040px]:w-4 min-[1040px]:h-4 text-slate-500" />
-                  <span className="hidden min-[960px]:inline">Dashboard</span>
-                </Link>
-
+              <div className="flex items-center gap-2 min-[1040px]:gap-2.5 xl:gap-3">
+                {/* Add Business Button */}
                 <Link
                   href="/add-business"
-                  className="flex items-center gap-1 min-[1040px]:gap-1.5 px-2.5 min-[1040px]:px-3.5 xl:px-4 py-1.5 xl:py-2 text-[0.82rem] min-[1040px]:text-[0.85rem] xl:text-[0.88rem] font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 min-[1040px]:px-3.5 xl:px-4 py-1.5 xl:py-2 text-[0.82rem] min-[1040px]:text-[0.85rem] xl:text-[0.88rem] font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap flex-shrink-0"
                 >
-                  <Plus className="w-3.5 h-3.5 xl:w-4 xl:h-4 stroke-[2.5]" />
+                  <PlusCircle className="w-4 h-4 stroke-[2.2]" />
                   <span>Add Business</span>
                 </Link>
 
-                <button
-                  onClick={() => logout()}
-                  title="Log out"
-                  className="p-1.5 min-[1040px]:p-2 text-slate-500 hover:text-rose-600 transition-all rounded-xl hover:bg-rose-50 hover:scale-105 active:scale-95 flex-shrink-0 cursor-pointer"
-                  aria-label="Logout"
-                >
-                  <LogOut className="w-4 h-4 xl:w-[18px] xl:h-[18px]" />
-                </button>
+                {/* User Profile Pill & Dropdown */}
+                <div ref={userMenuRef} className="relative">
+                  <button
+                    type="button"
+                    id="user-profile-menu-button"
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className={`flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full border transition-all duration-200 cursor-pointer select-none group ${
+                      userMenuOpen
+                        ? 'border-[#1D68F2]/30 bg-blue-50/70 shadow-xs'
+                        : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#1D68F2] to-[#3B7BF6] text-white flex items-center justify-center font-bold text-xs tracking-wider flex-shrink-0 shadow-xs ring-2 ring-white">
+                      {getInitials(user.name, user.email)}
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 max-w-[120px] xl:max-w-[150px] truncate">
+                      {user.name || 'User'}
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-transform duration-200 ${
+                        userMenuOpen ? 'rotate-180 text-[#1D68F2]' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown Card */}
+                  {userMenuOpen && (
+                    <div
+                      role="menu"
+                      aria-orientation="vertical"
+                      aria-labelledby="user-profile-menu-button"
+                      className="absolute right-0 top-full mt-2.5 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-[0_12px_45px_-6px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.06)] border border-slate-150 p-2 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right"
+                    >
+                      {/* User Info Header with Circular Avatar */}
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 border border-slate-100 mb-1">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1D68F2] to-[#3B7BF6] text-white flex items-center justify-center font-bold text-sm tracking-wider flex-shrink-0 shadow-xs ring-2 ring-white">
+                          {getInitials(user.name, user.email)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-sm text-slate-900 truncate">
+                              {user.name || 'Account User'}
+                            </p>
+                            {user.role === 'admin' && (
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 truncate mt-0.5" title={user.email}>
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Menu Links */}
+                      <div className="space-y-0.5 py-1">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-blue-100/70 text-slate-500 group-hover:text-[#1D68F2] flex items-center justify-center transition-colors flex-shrink-0">
+                            <LayoutGrid className="w-4 h-4 stroke-[2]" />
+                          </div>
+                          <span className="flex-1 font-semibold">Dashboard</span>
+                        </Link>
+
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-blue-100/70 text-slate-500 group-hover:text-[#1D68F2] flex items-center justify-center transition-colors flex-shrink-0">
+                            <User className="w-4 h-4 stroke-[2]" />
+                          </div>
+                          <span className="flex-1 font-semibold">Profile</span>
+                        </Link>
+
+                        {user.role === 'admin' && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/80 transition-all duration-150"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-colors flex-shrink-0">
+                              <Shield className="w-4 h-4 stroke-[2]" />
+                            </div>
+                            <span className="flex-1 font-semibold">Admin Panel</span>
+                          </Link>
+                        )}
+                      </div>
+
+                      {/* Divider */}
+                      <div className="my-1 border-t border-slate-100" />
+
+                      {/* Logout Action */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            logout();
+                          }}
+                          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 transition-all duration-150 cursor-pointer text-left"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-rose-50 group-hover:bg-rose-100/80 text-rose-500 group-hover:text-rose-600 flex items-center justify-center transition-colors flex-shrink-0">
+                            <LogOut className="w-4 h-4 stroke-[2]" />
+                          </div>
+                          <span className="flex-1">Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-1 min-[1040px]:gap-1.5 xl:gap-2">
@@ -442,20 +556,15 @@ export function Navbar() {
               <>
                 <Link
                   href="/add-business"
-                  className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl shadow-xs transition-colors"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl shadow-xs transition-colors"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <PlusCircle className="w-3.5 h-3.5 stroke-[2.2]" />
                   <span>Add Business</span>
                 </Link>
 
-                <button
-                  onClick={() => logout()}
-                  title="Log out"
-                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors active:scale-95 cursor-pointer"
-                  aria-label="Logout"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
+                <div className="w-8 h-8 rounded-full bg-[#1D68F2] text-white flex items-center justify-center font-bold text-xs shadow-xs select-none">
+                  {getInitials(user.name, user.email)}
+                </div>
               </>
             ) : (
               <>
@@ -622,41 +731,74 @@ export function Navbar() {
           <div className="pt-3 border-t border-slate-100 space-y-2">
             {user ? (
               <>
-                <div className="px-1 py-1 text-xs text-slate-500">
-                  Signed in as <strong>{user.email}</strong> ({user.role})
+                <div className="flex items-center gap-3 p-2.5 bg-slate-50/80 border border-slate-100 rounded-2xl mb-1">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1D68F2] to-[#3B7BF6] text-white flex items-center justify-center font-bold text-sm tracking-wider flex-shrink-0 shadow-xs ring-2 ring-white">
+                    {getInitials(user.name, user.email)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                      {user.name || 'User'}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
+
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 rounded-xl transition-all"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <LayoutGrid className="w-4 h-4" />
+                  </div>
+                  <span>Dashboard</span>
+                </Link>
+
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 rounded-xl transition-all"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span>Profile</span>
+                </Link>
+
                 {user.role === 'admin' && (
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full py-2.5 text-center text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl"
+                    className="flex items-center gap-3 px-3 py-2.5 text-xs sm:text-sm font-semibold text-indigo-700 hover:bg-indigo-50/80 rounded-xl transition-all"
                   >
-                    Admin Moderation Portal
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <span>Admin Panel</span>
                   </Link>
                 )}
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full py-2.5 text-center text-xs font-semibold text-slate-700 bg-slate-100 rounded-xl"
-                >
-                  My Dashboard
-                </Link>
+
                 <Link
                   href="/add-business"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 w-full py-2.5 text-center text-xs font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl shadow-sm"
+                  className="flex items-center justify-center gap-1.5 w-full py-2.5 text-center text-xs sm:text-sm font-bold text-white bg-[#1D68F2] hover:bg-[#1557D0] rounded-xl shadow-sm transition-all"
                 >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>+ Add Business</span>
+                  <PlusCircle className="w-4 h-4 stroke-[2.2]" />
+                  <span>Add Business</span>
                 </Link>
+
                 <button
+                  type="button"
                   onClick={() => {
-                    logout();
                     setMobileMenuOpen(false);
+                    logout();
                   }}
-                  className="block w-full py-2 text-center text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 text-center text-xs sm:text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                 >
-                  Log Out
+                  <LogOut className="w-4 h-4 text-rose-500" />
+                  <span>Logout</span>
                 </button>
               </>
             ) : (

@@ -98,12 +98,19 @@ export type CreateReviewInput = z.infer<typeof CreateReviewSchema>;
 
 // Claim Request Schema
 export const CreateClaimSchema = z.object({
-  businessEmail: z.string().email('Provide an official business email address').toLowerCase(),
+  fullName: z.string().min(2, 'Full name and designation required').max(100),
+  verificationOption: z.enum(['registered_email', 'corporate_email', 'alternative_proof']).default('corporate_email'),
+  businessEmail: z.string().email('Provide a valid email address').toLowerCase(),
   phone: z.string().min(7, 'Valid business contact phone is required'),
-  notes: z.string().min(10, 'Explain your relationship to the company (e.g. Owner, CEO, Marketing Director)').max(1000),
+  notes: z.string().max(1000).optional().default(''),
   verificationDocuments: z.array(z.string()).optional(),
 });
 export type CreateClaimInput = z.infer<typeof CreateClaimSchema>;
+
+export const VerifyClaimOtpSchema = z.object({
+  otp: z.string().length(6, 'Verification code must be 6 digits'),
+});
+export type VerifyClaimOtpInput = z.infer<typeof VerifyClaimOtpSchema>;
 
 // Report Listing Schema
 export const CreateReportSchema = z.object({

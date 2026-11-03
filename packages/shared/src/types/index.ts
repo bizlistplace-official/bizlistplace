@@ -109,13 +109,20 @@ export interface IClaimRequest {
   _id: string;
   businessId: string | IBusiness;
   claimantId: string | IUser;
+  fullName?: string;
+  verificationOption?: 'registered_email' | 'corporate_email' | 'alternative_proof';
   businessEmail: string;
   phone: string;
   verificationDocuments?: string[];
   notes?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
+  otpAttempts?: number;
+  lastOtpSentAt?: string | null;
   status: ClaimStatus;
   rejectionReason?: string;
   reviewedBy?: string | IUser;
+  reviewedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

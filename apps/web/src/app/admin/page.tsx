@@ -19,6 +19,7 @@ import {
   Sparkles,
   RefreshCw,
   Search,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,6 +30,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'claims' | 'reports' | 'logs'>(
     'pending'
   );
+  const [claimsFilter, setClaimsFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [stats, setStats] = useState<any>(null);
   const [pendingBusinesses, setPendingBusinesses] = useState<IBusiness[]>([]);
   const [allBusinesses, setAllBusinesses] = useState<IBusiness[]>([]);
@@ -354,62 +356,167 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Tab: Claims */}
+      {/* Tab: Business Claims */}
       {activeTab === 'claims' && (
-        <div className="space-y-4">
-          {claims.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl text-slate-500 text-sm">
-              No claim requests submitted.
+        <div className="space-y-6">
+          {/* Claims Filter Bar */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { id: 'all', label: 'All Claims', count: claims.length },
+              { id: 'pending', label: 'Pending Review', count: claims.filter((c) => c.status === 'pending').length },
+              { id: 'approved', label: 'Approved', count: claims.filter((c) => c.status === 'approved').length },
+              { id: 'rejected', label: 'Rejected', count: claims.filter((c) => c.status === 'rejected').length },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setClaimsFilter(f.id as any)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  claimsFilter === f.id
+                    ? 'bg-[#1D68F2] text-white shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <span>{f.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    claimsFilter === f.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {f.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {claims.filter((c) => claimsFilter === 'all' || c.status === claimsFilter).length === 0 ? (
+            <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl text-slate-500 text-sm space-y-2">
+              <Shield className="w-10 h-10 text-slate-300 mx-auto" />
+              <div className="font-bold text-slate-700">No {claimsFilter !== 'all' ? claimsFilter : ''} claim requests found</div>
+              <p className="text-xs text-slate-400">Ownership claim requests submitted by business representatives will appear here.</p>
             </div>
           ) : (
-            claims.map((claim) => (
-              <div
-                key={claim._id}
-                className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900">
-                      Listing: {(claim.businessId as any)?.name}
-                    </h4>
-                    <p className="text-slate-500">
-                      Claimant: {(claim.claimantId as any)?.name} ({(claim.claimantId as any)?.email})
-                    </p>
-                  </div>
-                  <Badge variant={claim.status === 'approved' ? 'verified' : 'pending'}>
-                    {claim.status}
-                  </Badge>
-                </div>
+            claims
+              .filter((c) => claimsFilter === 'all' || c.status === claimsFilter)
+              .map((claim) => (
+                <div
+                  key={claim._id}
+                  className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4 text-xs"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <Link
+                          href={`/business/${(claim.businessId as any)?.slug || ''}`}
+                          target="_blank"
+                          className="font-extrabold text-base text-slate-900 hover:text-[#1D68F2] flex items-center gap-1.5"
+                        >
+                          <span>{(claim.businessId as any)?.name || 'Listing'}</span>
+                          <span className="text-xs font-normal text-slate-400">↗</span>
+                        </Link>
+                        <Badge
+                          variant={
+                            claim.status === 'approved'
+                              ? 'verified'
+                              : claim.status === 'pending'
+                              ? 'pending'
+                              : 'rejected'
+                          }
+                          className="capitalize font-bold text-[11px]"
+                        >
+                          {claim.status === 'pending' ? 'Pending Review' : claim.status}
+                        </Badge>
+                      </div>
 
-                <div className="p-3 bg-slate-50 rounded-lg space-y-1">
-                  <div>Official Corporate Email: <strong>{claim.businessEmail}</strong></div>
-                  <div>Contact Phone: <strong>{claim.phone}</strong></div>
-                  <div className="pt-1">
-                    <strong>Evidence / Statement:</strong> {claim.notes}
-                  </div>
-                </div>
+                      <p className="text-slate-500 text-xs">
+                        Claimant: <strong className="text-slate-800">{claim.fullName || (claim.claimantId as any)?.name || 'Claimant'}</strong> • Account: {(claim.claimantId as any)?.email} • Submitted: {new Date(claim.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
 
-                {claim.status === 'pending' && (
-                  <div className="flex items-center gap-2 pt-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => handleApproveClaim(claim._id)}
-                    >
-                      Approve Ownership Claim
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleRejectClaim(claim._id)}
-                    >
-                      Reject Claim
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {claim.emailVerified ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 font-bold text-[11px]">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Email Verified (OTP / Link)</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 font-bold text-[11px]">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Email Not Yet Verified</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))
+
+                  {/* Claim Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Verification Email
+                      </span>
+                      <strong className="text-slate-800 text-xs break-all">{claim.businessEmail}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Contact / WhatsApp
+                      </span>
+                      <strong className="text-slate-800 text-xs">{claim.phone}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Verification Option
+                      </span>
+                      <span className="capitalize font-semibold text-slate-700 text-xs">
+                        {claim.verificationOption ? claim.verificationOption.replace('_', ' ') : 'Corporate Email'}
+                      </span>
+                    </div>
+
+                    {claim.notes && (
+                      <div className="sm:col-span-3 pt-2 border-t border-slate-200/60">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                          Ownership Proof / Role Statement
+                        </span>
+                        <p className="text-slate-700 text-xs leading-relaxed whitespace-pre-line">
+                          {claim.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {claim.status === 'rejected' && claim.rejectionReason && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span><strong>Rejection Reason:</strong> {claim.rejectionReason}</span>
+                    </div>
+                  )}
+
+                  {/* Actions for Pending Claims */}
+                  {claim.status === 'pending' && (
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 rounded-xl font-bold"
+                        onClick={() => handleApproveClaim(claim._id)}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Approve Claim &amp; Transfer Ownership</span>
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        className="gap-1.5 rounded-xl font-bold"
+                        onClick={() => handleRejectClaim(claim._id)}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject Claim</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
           )}
         </div>
       )}

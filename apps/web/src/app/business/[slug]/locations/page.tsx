@@ -51,9 +51,9 @@ export default async function BusinessLocationsPage({ params }: LocationsPagePro
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {locations.map((loc) => (
+        {locations.map((loc, idx) => (
           <div
-            key={loc.branchSlug}
+            key={loc._id || loc.branchSlug || (loc as any).id || `loc-${idx}`}
             className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3 flex flex-col justify-between"
           >
             <div className="space-y-2">

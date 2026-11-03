@@ -327,7 +327,7 @@ export class BusinessController {
         message:
           listingStatus === 'published'
             ? 'Listing created and published.'
-            : 'Listing submitted successfully. It will be publicly live once reviewed by our moderation team.',
+            : 'Your business has been submitted successfully for review.',
         data: {
           business,
           location: createdLocation,

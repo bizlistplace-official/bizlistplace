@@ -16,8 +16,9 @@ const nextConfig = {
       },
     ],
   },
+  transpilePackages: ['@bizpockethub/shared'],
   experimental: {
-    optimizePackageImports: ['lucide-react', '@bizpockethub/shared'],
+    optimizePackageImports: ['lucide-react'],
   },
   async headers() {
     return [

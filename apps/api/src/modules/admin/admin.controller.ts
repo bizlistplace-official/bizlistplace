@@ -268,7 +268,7 @@ export class AdminController {
       const { id } = req.params;
       const admin = req.user!;
 
-      const claim = await ClaimRequest.findById(id);
+      const claim = await ClaimRequest.findById(id).populate('businessId', 'name slug');
       if (!claim) {
         res.status(404).json({ success: false, message: 'Claim request not found.' });
         return;
@@ -276,17 +276,37 @@ export class AdminController {
 
       claim.status = 'approved';
       claim.reviewedBy = admin._id;
+      claim.reviewedAt = new Date();
       await claim.save();
 
       // Transfer ownership to claimant and mark verified
       await Business.findByIdAndUpdate(claim.businessId, {
         ownerId: claim.claimantId,
         verificationStatus: 'verified',
-        verificationNotes: 'Verified via admin-approved claim review with official company credentials.',
+        verificationNotes: `Verified via admin-approved claim review (${claim.fullName || 'Claimant'}, ${claim.businessEmail}).`,
       });
 
       // Ensure claimant has role 'business_owner'
       await User.findByIdAndUpdate(claim.claimantId, { role: 'business_owner' });
+
+      // Reject competing pending claims for this same business
+      await ClaimRequest.updateMany(
+        {
+          businessId: claim.businessId,
+          _id: { $ne: claim._id },
+          status: 'pending',
+        },
+        {
+          status: 'rejected',
+          rejectionReason: 'Another competing ownership claim for this business was verified and approved by administration.',
+          reviewedBy: admin._id,
+          reviewedAt: new Date(),
+        }
+      );
+
+      // Notify claimant via email
+      const businessName = (claim.businessId as any)?.name || 'Your Business';
+      await EmailService.sendClaimStatusNotification(claim.businessEmail, businessName, 'approved');
 
       await AuditService.log('claim_approved', 'claim', id, {
         businessId: claim.businessId,
@@ -309,7 +329,7 @@ export class AdminController {
       const { reason } = req.body;
       const admin = req.user!;
 
-      const claim = await ClaimRequest.findById(id);
+      const claim = await ClaimRequest.findById(id).populate('businessId', 'name');
       if (!claim) {
         res.status(404).json({ success: false, message: 'Claim request not found.' });
         return;
@@ -318,9 +338,18 @@ export class AdminController {
       claim.status = 'rejected';
       claim.rejectionReason = reason || 'Insufficient proof of ownership.';
       claim.reviewedBy = admin._id;
+      claim.reviewedAt = new Date();
       await claim.save();
 
-      await AuditService.log('claim_rejected', 'claim', id, { reason }, admin._id, req.ip);
+      const businessName = (claim.businessId as any)?.name || 'Your Business';
+      await EmailService.sendClaimStatusNotification(
+        claim.businessEmail,
+        businessName,
+        'rejected',
+        claim.rejectionReason
+      );
+
+      await AuditService.log('claim_rejected', 'claim', id, { reason: claim.rejectionReason }, admin._id, req.ip);
 
       res.json({
         success: true,

@@ -6,6 +6,7 @@ import { fetchApi } from '@/lib/api';
 import { ReviewSection } from '@/components/business/ReviewSection';
 import { BusinessCard } from '@/components/business/BusinessCard';
 import { BusinessLogo } from '@/components/business/BusinessLogo';
+import { ClaimBusinessButton } from '@/components/business/ClaimBusinessButton';
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/Breadcrumbs';
 import { IBusiness, IBusinessLocation, POPULAR_COUNTRIES } from '@bizpockethub/shared';
 import {
@@ -209,13 +210,7 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
                       Verified Business Entity
                     </span>
                   ) : (
-                    <Link
-                      href={`/claim-business?businessId=${biz._id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-medium border border-amber-200 hover:bg-amber-100 transition-colors"
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                      Unclaimed Listing — Are you the owner? Claim it now
-                    </Link>
+                    <ClaimBusinessButton business={biz} variant="badge" />
                   )}
                 </div>
 
@@ -261,6 +256,10 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
 
             {/* Quick Action Buttons */}
             <div className="flex flex-col sm:flex-row lg:flex-col gap-3 flex-shrink-0 lg:w-64">
+              {biz.verificationStatus !== 'verified' && (
+                <ClaimBusinessButton business={biz} variant="primary" />
+              )}
+
               {biz.website && (
                 <a
                   href={biz.website}
@@ -376,9 +375,9 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
                 )}
 
                 {/* Secondary Locations */}
-                {otherLocations.map((loc) => (
+                {otherLocations.map((loc, idx) => (
                   <div
-                    key={loc.branchSlug}
+                    key={loc._id || loc.branchSlug || (loc as any).id || `other-loc-${idx}`}
                     className="p-5 rounded-xl border border-slate-200 bg-white space-y-3"
                   >
                     <div className="flex items-center justify-between">
@@ -494,13 +493,14 @@ export default async function BusinessDetailPage({ params }: BusinessPageProps) 
 
               {/* Claim / Report Action */}
               <div className="pt-4 border-t border-slate-100 space-y-2">
-                <Link
-                  href={`/claim-business?businessId=${biz._id}`}
-                  className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                  Claim or Verify This Profile
-                </Link>
+                {biz.verificationStatus !== 'verified' ? (
+                  <ClaimBusinessButton business={biz} variant="sidebar" />
+                ) : (
+                  <div className="p-2.5 bg-emerald-50 rounded-xl text-xs font-semibold text-emerald-800 flex items-center justify-center gap-1.5 border border-emerald-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Verified Official Profile</span>
+                  </div>
+                )}
 
                 <Link
                   href={`/contact?subject=Report+Listing+${biz.slug}`}

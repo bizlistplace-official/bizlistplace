@@ -12,6 +12,7 @@ import { CountrySelect } from '@/components/ui/CountrySelect';
 import { CitySelect } from '@/components/ui/CitySelect';
 import {
   Building2,
+  Plus,
   PlusCircle,
   ExternalLink,
   MapPin,
@@ -20,8 +21,17 @@ import {
   AlertTriangle,
   Clock,
   Eye,
-  FileText,
-  UserCheck,
+  Star,
+  Copy,
+  Check,
+  Share2,
+  MessageSquare,
+  Sparkles,
+  Phone,
+  Mail,
+  Globe,
+  ChevronRight,
+  TrendingUp,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -31,10 +41,19 @@ export default function DashboardPage() {
   const [claims, setClaims] = useState<IClaimRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Active business index (for multi-business switcher)
+  const [selectedBizIndex, setSelectedBizIndex] = useState(0);
+
+  // Dashboard Tab state ('branches' | 'reviews' | 'growth')
+  const [activeTab, setActiveTab] = useState<'branches' | 'reviews' | 'growth'>('branches');
+
+  // Copy Link State
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Branch Modal State
   const [selectedBizForBranch, setSelectedBizForBranch] = useState<IBusiness | null>(null);
   const [branchName, setBranchName] = useState('');
-  const [branchCountry, setBranchCountry] = useState('US');
+  const [branchCountry, setBranchCountry] = useState('PK');
   const [branchCity, setBranchCity] = useState('');
   const [branchRegion, setBranchRegion] = useState('');
   const [branchAddress, setBranchAddress] = useState('');
@@ -69,6 +88,21 @@ export default function DashboardPage() {
     }
   }, [user, authLoading]);
 
+  const activeBusiness: IBusiness | undefined = businesses[selectedBizIndex] || businesses[0];
+
+  // Total branches across all businesses
+  const totalBranchesCount = businesses.reduce((acc, b) => {
+    const locs = (b as any).locations || [];
+    return acc + (locs.length || 1);
+  }, 0);
+
+  const handleCopyLink = (slug: string) => {
+    const fullUrl = `${window.location.origin}/business/${slug}`;
+    navigator.clipboard.writeText(fullUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBizForBranch) return;
@@ -82,7 +116,7 @@ export default function DashboardPage() {
       body: JSON.stringify({
         branchName,
         countryCode: branchCountry,
-        region: branchRegion,
+        region: branchRegion || branchCity,
         city: branchCity,
         addressLine1: branchAddress,
         phone: branchPhone,
@@ -104,341 +138,709 @@ export default function DashboardPage() {
     }
   };
 
+  // Get user initials for avatar
+  const userInitials = (user?.name || 'User')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   if (authLoading || loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-sm text-slate-500">
-        Loading your dashboard data...
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 space-y-4">
+        <div className="w-10 h-10 border-4 border-[#1D68F2] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-slate-600">Loading your Owner Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Owner Dashboard
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Welcome back, <strong>{user?.name}</strong> ({user?.email})
-          </p>
-        </div>
+    <main className="min-h-screen bg-slate-50/70 pb-20 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Top Welcome & Business Switcher Header (Exact layout from bizbranches.pk) */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 sm:gap-5">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#1D68F2] to-[#1248ab] text-white flex items-center justify-center font-black text-2xl shadow-md shadow-blue-900/20 shrink-0">
+              {userInitials}
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+                  {user?.name || 'Business Owner'}
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#1D68F2] border border-blue-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#1D68F2]" />
+                  Owner Account
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                <span>{user?.email}</span>
+                <span>•</span>
+                <span className="font-medium text-slate-600">
+                  {businesses.length} {businesses.length === 1 ? 'Business' : 'Businesses'} Registered
+                </span>
+              </p>
+            </div>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Link href="/add-business">
-            <Button variant="secondary" size="sm" className="gap-1.5">
-              <PlusCircle className="w-4 h-4" />
-              Add New Listing
-            </Button>
-          </Link>
-          <Link href="/claim-business">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <ShieldCheck className="w-4 h-4" />
-              Claim Profile
-            </Button>
-          </Link>
-        </div>
-      </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Multi-business switcher if owner has more than 1 listing */}
+            {businesses.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedBizIndex}
+                  onChange={(e) => setSelectedBizIndex(Number(e.target.value))}
+                  className="h-11 px-3.5 pr-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-all border border-slate-300 outline-none cursor-pointer"
+                >
+                  {businesses.map((biz, idx) => (
+                    <option key={biz._id} value={idx}>
+                      {biz.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-      {/* Main Content: My Listings */}
-      <div className="space-y-6">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-teal-600" />
-          My Registered Businesses ({businesses.length})
-        </h2>
+            <Link
+              href="/add-business"
+              className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#1D68F2] hover:bg-[#1756cb] text-white font-bold text-xs shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Another Business</span>
+            </Link>
 
-        {businesses.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-4">
-            <Building2 className="w-12 h-12 text-slate-300 mx-auto" />
-            <h3 className="text-base font-bold text-slate-900">No Listings Registered Yet</h3>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-              You haven&apos;t added any business listings or claimed any existing profiles under this
-              account yet.
-            </p>
-            <Link href="/add-business">
-              <Button variant="primary" size="sm" className="mt-2">
-                Register Your First Listing
-              </Button>
+            <Link
+              href="/claim-business"
+              className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all border border-slate-200"
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-600" />
+              <span>Claim Listing</span>
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {businesses.map((biz) => {
-              const locations = (biz as any).locations || [];
-              const statusVariant =
-                biz.listingStatus === 'published'
-                  ? 'verified'
-                  : biz.listingStatus === 'pending'
-                  ? 'pending'
-                  : 'rejected';
+        </div>
 
-              return (
-                <div
-                  key={biz._id}
-                  className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2.5">
-                        <h3 className="text-lg font-bold text-slate-900">{biz.name}</h3>
-                        <Badge variant={statusVariant as any} className="capitalize">
-                          {biz.listingStatus}
-                        </Badge>
-                        {biz.verificationStatus === 'verified' && (
-                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            Verified
-                          </span>
-                        )}
+        {/* Empty State: No Listings Registered Yet (Matching bizbranches.pk 100%) */}
+        {businesses.length === 0 ? (
+          <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200 shadow-sm max-w-2xl mx-auto my-12 space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-blue-50 text-[#1D68F2] flex items-center justify-center mx-auto border border-blue-100 shadow-sm">
+              <Building2 className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">No Business Listings Linked Yet</h2>
+              <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed">
+                You haven&apos;t registered or claimed any business listings on BizBranches. List your business now to start receiving customer reviews, inquiries, and local leads.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3.5 justify-center pt-2">
+              <Link
+                href="/add-business"
+                className="px-6 py-3.5 rounded-xl bg-[#1D68F2] hover:bg-[#1756cb] text-white font-bold text-sm shadow-md transition-all inline-flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Register Your Business Free</span>
+              </Link>
+              <Link
+                href="/search"
+                className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all inline-flex items-center justify-center gap-2"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Search &amp; Claim Existing Listing</span>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* KPI Stat Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1D68F2] flex items-center justify-center shrink-0">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900">{businesses.length}</div>
+                  <div className="text-xs font-semibold text-slate-500">Total Listings</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <GitBranch className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900">{totalBranchesCount}</div>
+                  <div className="text-xs font-semibold text-slate-500">Branch Locations</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {businesses.filter((b) => b.listingStatus === 'published').length}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-500">Verified &amp; Published</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {businesses.filter((b) => b.listingStatus === 'pending').length}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-500">Pending Moderation</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Business Spotlight Card */}
+            {activeBusiness && (
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="p-6 sm:p-8 space-y-6">
+                  {/* Business Top Meta */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+                    <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1D68F2] to-blue-700 text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0">
+                        {activeBusiness.name.slice(0, 2).toUpperCase()}
                       </div>
-                      <p className="text-xs text-slate-500">
-                        Slug: <code>/business/{biz.slug}</code> • Created:{' '}
-                        {new Date(biz.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                            {activeBusiness.name}
+                          </h2>
+                          {activeBusiness.listingStatus === 'published' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              Published &amp; Verified
+                            </span>
+                          ) : activeBusiness.listingStatus === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              Pending Review
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                              Action Required
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-4 text-xs text-slate-500 flex-wrap">
+                          <span>Slug: <code className="text-slate-700 font-mono">/business/{activeBusiness.slug}</code></span>
+                          <span>•</span>
+                          <span>Created: {new Date(activeBusiness.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/business/${biz.slug}`}>
-                        <Button variant="outline" size="sm" className="gap-1.5">
-                          <Eye className="w-3.5 h-3.5" />
-                          View Public Page
-                        </Button>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <Link
+                        href={`/business/${activeBusiness.slug}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Public Page</span>
                       </Link>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => setSelectedBizForBranch(biz)}
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBizForBranch(activeBusiness)}
+                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#1D68F2] hover:bg-[#1756cb] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
                       >
                         <PlusCircle className="w-3.5 h-3.5" />
-                        Add Branch Location
-                      </Button>
+                        <span>Add Branch Location</span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Rejection / Moderation Alert if rejected */}
-                  {biz.listingStatus === 'rejected' && (
-                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs space-y-1">
-                      <div className="font-bold flex items-center gap-1.5">
+                  {/* Status Alerts */}
+                  {activeBusiness.listingStatus === 'pending' && (
+                    <div className="p-4 bg-amber-50/90 border border-amber-200 text-amber-950 rounded-2xl text-xs sm:text-sm flex items-start sm:items-center gap-3">
+                      <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+                      <div className="leading-relaxed">
+                        <strong>This listing is currently pending review by our moderation team.</strong> It will be published publicly on BizBranches once verified.
+                      </div>
+                    </div>
+                  )}
+
+                  {activeBusiness.listingStatus === 'rejected' && (
+                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-950 rounded-2xl text-xs sm:text-sm space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-rose-800">
                         <AlertTriangle className="w-4 h-4 text-rose-600" />
                         Listing Moderation Feedback:
                       </div>
-                      <p className="text-rose-800">
-                        {biz.rejectionReason ||
+                      <p className="text-rose-900 leading-relaxed">
+                        {activeBusiness.rejectionReason ||
                           'Please revise your listing details to ensure accurate company representation and valid operational premises.'}
                       </p>
                     </div>
                   )}
 
-                  {/* Locations List */}
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
-                      <GitBranch className="w-3.5 h-3.5 text-teal-600" />
-                      Branch Locations ({locations.length})
-                    </h4>
+                  {/* Tab Navigation (Exact tabs inspired by bizbranches.pk: branches, reviews, growth) */}
+                  <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('branches')}
+                      className={`dash-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        activeTab === 'branches'
+                          ? 'bg-blue-50 text-[#1D68F2] shadow-xs border border-blue-200/80'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <GitBranch className="w-4 h-4" />
+                      <span>Branches &amp; Locations ({(activeBusiness.locations || []).length || 1})</span>
+                    </button>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {locations.map((loc: IBusinessLocation) => (
-                        <div
-                          key={loc.branchSlug}
-                          className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-xs space-y-1"
-                        >
-                          <div className="flex items-center justify-between font-bold text-slate-800">
-                            <span>{loc.branchName}</span>
-                            <span className="text-[10px] font-mono text-slate-400">
-                              {loc.countryCode}
-                            </span>
-                          </div>
-                          <p className="text-slate-500 line-clamp-2">
-                            {loc.addressLine1}, {loc.city}, {loc.region}
-                          </p>
-                          {loc.phone && <div className="text-[11px] text-slate-600">{loc.phone}</div>}
-                        </div>
-                      ))}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('reviews')}
+                      className={`dash-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        activeTab === 'reviews'
+                          ? 'bg-blue-50 text-[#1D68F2] shadow-xs border border-blue-200/80'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Reviews &amp; Community ({activeBusiness.reviewCount || 0})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('growth')}
+                      className={`dash-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        activeTab === 'growth'
+                          ? 'bg-blue-50 text-[#1D68F2] shadow-xs border border-blue-200/80'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Growth &amp; Direct Share</span>
+                    </button>
                   </div>
+
+                  {/* TAB PANE 1: Branches & Locations */}
+                  {activeTab === 'branches' && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#1D68F2]" />
+                          Operational Locations &amp; Branches
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBizForBranch(activeBusiness)}
+                          className="text-xs font-bold text-[#1D68F2] hover:text-[#1756cb] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add New Branch</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {((activeBusiness.locations && activeBusiness.locations.length > 0)
+                          ? activeBusiness.locations
+                          : [
+                              {
+                                _id: `${activeBusiness._id}-hq`,
+                                branchName: 'Headquarters',
+                                countryCode: activeBusiness.countryCode || 'PK',
+                                city: activeBusiness.primaryLocation?.city || 'Primary City',
+                                region: activeBusiness.primaryLocation?.region || '',
+                                addressLine1: activeBusiness.primaryLocation?.addressLine1 || 'Main Office',
+                                phone: activeBusiness.phone,
+                                isPrimary: true,
+                              } as any,
+                            ]
+                        ).map((loc: IBusinessLocation, idx: number) => (
+                          <div
+                            key={loc._id || loc.branchSlug || `${activeBusiness._id}-loc-${idx}`}
+                            className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:shadow-xs transition-all space-y-2 text-xs"
+                          >
+                            <div className="flex items-center justify-between font-bold text-slate-900">
+                              <span className="text-sm font-extrabold">{loc.branchName}</span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600">
+                                {loc.countryCode || 'PK'}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 line-clamp-2">{loc.addressLine1}</p>
+                            <div className="text-[11px] font-semibold text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                              <span>{loc.city}{loc.region ? `, ${loc.region}` : ''}</span>
+                              {loc.phone && <span>{loc.phone}</span>}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Quick Add Branch Card */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBizForBranch(activeBusiness)}
+                          className="p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-[#1D68F2] bg-white hover:bg-blue-50/30 transition-all flex flex-col items-center justify-center gap-2 text-slate-600 hover:text-[#1D68F2] min-h-[110px] cursor-pointer"
+                        >
+                          <PlusCircle className="w-5 h-5" />
+                          <span className="text-xs font-bold">Add Another Branch</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB PANE 2: Reviews & Community */}
+                  {activeTab === 'reviews' && (
+                    <div className="space-y-6 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                        <div className="text-center sm:text-left space-y-1">
+                          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Rating</div>
+                          <div className="text-3xl font-black text-slate-900 flex items-center justify-center sm:justify-start gap-2">
+                            <span>{activeBusiness.ratingAverage || '5.0'}</span>
+                            <div className="flex text-amber-400">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className="w-4 h-4 fill-current" />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-center sm:text-left space-y-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-5">
+                          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Reviews</div>
+                          <div className="text-3xl font-black text-slate-900">
+                            {activeBusiness.reviewCount || 0}
+                          </div>
+                        </div>
+
+                        <div className="text-center sm:text-left space-y-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-5">
+                          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Response Rate</div>
+                          <div className="text-3xl font-black text-[#1D68F2]">100%</div>
+                        </div>
+                      </div>
+
+                      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+                        <Star className="w-10 h-10 text-amber-400 mx-auto fill-current" />
+                        <h4 className="text-base font-bold text-slate-900">Customer Reviews &amp; Feedback</h4>
+                        <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+                          Share your direct listing link with clients to collect reviews. Positive reviews boost your Google rank and local trust!
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(activeBusiness.slug)}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer"
+                        >
+                          {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          <span>{copiedLink ? 'Review Link Copied!' : 'Copy Review Link for Customers'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB PANE 3: Growth & Direct Share */}
+                  {activeTab === 'growth' && (
+                    <div className="space-y-6 animate-in fade-in duration-200">
+                      <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 p-6 rounded-2xl border border-blue-200/80 space-y-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#1D68F2] text-white flex items-center justify-center shrink-0">
+                            <Share2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-base font-extrabold text-slate-900">Direct Public Share Link</h4>
+                            <p className="text-xs text-slate-600">
+                              Share your official listing profile link with customers, suppliers, and partners.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={typeof window !== 'undefined' ? `${window.location.origin}/business/${activeBusiness.slug}` : `/business/${activeBusiness.slug}`}
+                            className="w-full h-11 px-4 text-xs font-mono font-bold bg-white border border-slate-300 rounded-xl text-slate-700 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(activeBusiness.slug)}
+                            className="w-full sm:w-auto h-11 px-5 rounded-xl bg-[#1D68F2] hover:bg-[#1756cb] text-white font-bold text-xs flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer shadow-xs"
+                          >
+                            {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* SEO Growth Tips */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-2">
+                          <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                            <TrendingUp className="w-4 h-4 text-emerald-600" />
+                            Rank Higher on Local Search
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            Adding accurate branch addresses, business hours, and phone numbers increases your crawl ranking and helps local customers find you quickly.
+                          </p>
+                        </div>
+
+                        <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-2">
+                          <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                            <ShieldCheck className="w-4 h-4 text-[#1D68F2]" />
+                            Verified Company Authority
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            Keep your business information updated to maintain your verified owner badge and build long-term trust with buyers.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              </div>
+            )}
 
-      {/* Claim Requests Section */}
-      <div className="space-y-4 pt-6 border-t border-slate-200">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-teal-600" />
-          My Claim Submissions ({claims.length})
-        </h2>
+            {/* List of Other Registered Businesses (if multiple) */}
+            {businesses.length > 1 && (
+              <div className="space-y-4 pt-4">
+                <h3 className="text-base font-extrabold text-slate-900">
+                  All Your Registered Businesses ({businesses.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {businesses.map((biz, idx) => (
+                    <div
+                      key={biz._id}
+                      onClick={() => setSelectedBizIndex(idx)}
+                      className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                        idx === selectedBizIndex
+                          ? 'border-[#1D68F2] bg-blue-50/30 shadow-xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-extrabold text-slate-900 text-sm truncate">{biz.name}</h4>
+                        <Badge
+                          variant={biz.listingStatus === 'published' ? 'verified' : 'pending'}
+                          className="capitalize text-[10px]"
+                        >
+                          {biz.listingStatus}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 line-clamp-1">
+                        /business/{biz.slug}
+                      </p>
+                      <div className="mt-3 text-[11px] font-bold text-[#1D68F2] flex items-center gap-1">
+                        <span>Select to manage</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {claims.length === 0 ? (
-          <p className="text-xs text-slate-500">
-            No claim requests submitted. If you find an existing listing for your business, you can
-            claim it to gain management access.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claims.map((claim) => (
-              <div
-                key={claim._id}
-                className="bg-white border border-slate-200 rounded-xl p-4 text-xs space-y-2 shadow-sm"
-              >
+            {/* My Submitted Ownership Claims Section */}
+            {claims.length > 0 && (
+              <div className="space-y-4 pt-6 border-t border-slate-200">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">
-                    {(claim.businessId as any)?.name || 'Business'}
-                  </span>
-                  <Badge
-                    variant={
-                      claim.status === 'approved'
-                        ? 'verified'
-                        : claim.status === 'rejected'
-                        ? 'rejected'
-                        : 'pending'
-                    }
-                    className="capitalize"
-                  >
-                    {claim.status}
-                  </Badge>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#1D68F2]" />
+                    <span>My Ownership Claims ({claims.length})</span>
+                  </h3>
                 </div>
-                <div className="text-slate-500">
-                  Business Email: <strong>{claim.businessEmail}</strong> • Phone:{' '}
-                  <strong>{claim.phone}</strong>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {claims.map((claim) => (
+                    <div
+                      key={claim._id}
+                      className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3 text-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-bold text-sm text-slate-900 truncate">
+                          {(claim.businessId as any)?.name || 'Business Listing'}
+                        </h4>
+                        <Badge
+                          variant={
+                            claim.status === 'approved'
+                              ? 'verified'
+                              : claim.status === 'pending'
+                              ? 'pending'
+                              : 'rejected'
+                          }
+                          className="capitalize text-[11px] font-bold"
+                        >
+                          {claim.status === 'pending' ? 'Pending Approval' : claim.status}
+                        </Badge>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 rounded-xl space-y-1 text-slate-600">
+                        <div>Verification Email: <strong className="text-slate-800">{claim.businessEmail}</strong></div>
+                        <div>Contact Phone: <strong className="text-slate-800">{claim.phone}</strong></div>
+                        <div className="pt-1 flex items-center gap-1.5">
+                          {claim.emailVerified ? (
+                            <span className="text-emerald-700 font-bold flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> Email Verified
+                            </span>
+                          ) : (
+                            <span className="text-amber-700 font-bold flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" /> Email Pending Verification
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {claim.status === 'approved' && (
+                        <p className="text-emerald-700 font-semibold text-[11px]">
+                          ✓ Ownership approved! This business is now linked to your owner account.
+                        </p>
+                      )}
+
+                      {claim.status === 'pending' && (
+                        <p className="text-slate-500 text-[11px]">
+                          Our directory administration team is reviewing your ownership credentials.
+                        </p>
+                      )}
+
+                      {claim.status === 'rejected' && claim.rejectionReason && (
+                        <p className="text-rose-700 text-[11px]">
+                          Rejected: {claim.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {claim.rejectionReason && (
-                  <p className="text-rose-700 bg-rose-50 p-2 rounded">
-                    Rejection note: {claim.rejectionReason}
-                  </p>
-                )}
               </div>
-            ))}
+            )}
           </div>
         )}
-      </div>
 
-      {/* Add Branch Location Modal */}
-      {selectedBizForBranch && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-base text-slate-900">
-                Add Branch Location to {selectedBizForBranch.name}
-              </h3>
-              <button
-                onClick={() => setSelectedBizForBranch(null)}
-                className="text-slate-400 hover:text-slate-700 font-bold text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            {branchSuccess && (
-              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-lg">
-                {branchSuccess}
-              </div>
-            )}
-            {branchError && (
-              <div className="p-3 bg-rose-50 text-rose-800 text-xs rounded-lg">{branchError}</div>
-            )}
-
-            <form onSubmit={handleAddBranch} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Branch Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="e.g. London Regional Office"
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Add Branch Location Modal */}
+        {selectedBizForBranch && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200 space-y-6">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Country *</label>
-                  <CountrySelect
-                    value={branchCountry}
-                    onChange={(code) => {
-                      setBranchCountry(code);
-                      setBranchCity('');
-                    }}
-                    required
-                  />
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                    Add Branch Location
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    For <strong>{selectedBizForBranch.name}</strong>
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">City *</label>
-                  <CitySelect
-                    countryCode={branchCountry}
-                    value={branchCity}
-                    onChange={(city) => setBranchCity(city)}
-                    allowCustomInput={true}
-                    placeholder="Select or enter city..."
-                    required
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedBizForBranch(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  ✕
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {branchSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>{branchSuccess}</span>
+                </div>
+              )}
+
+              {branchError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  <span>{branchError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleAddBranch} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Region / State *
+                    Branch Name *
                   </label>
                   <input
                     type="text"
                     required
-                    value={branchRegion}
-                    onChange={(e) => setBranchRegion(e.target.value)}
-                    placeholder="Greater London"
-                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    value={branchName}
+                    onChange={(e) => setBranchName(e.target.value)}
+                    placeholder="e.g. Gulberg Branch, Karachi Downtown"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Country *
+                    </label>
+                    <CountrySelect
+                      value={branchCountry}
+                      onChange={(c) => {
+                        setBranchCountry(c);
+                        setBranchCity('');
+                      }}
+                      placeholder="Select Country"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      City *
+                    </label>
+                    <CitySelect
+                      value={branchCity}
+                      onChange={setBranchCity}
+                      countryCode={branchCountry}
+                      allowCustomInput
+                      placeholder={branchCountry ? 'Select or type city...' : 'Select country first'}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Branch Phone
+                    Complete Address *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={branchAddress}
+                    onChange={(e) => setBranchAddress(e.target.value)}
+                    placeholder="e.g. Office #402, Business Bay, Lahore"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Branch Phone Number
                   </label>
                   <input
                     type="tel"
                     value={branchPhone}
                     onChange={(e) => setBranchPhone(e.target.value)}
-                    placeholder="+44 20 7946 0912"
-                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="e.g. +92 300 1234567"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Street Address Line 1 *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={branchAddress}
-                  onChange={(e) => setBranchAddress(e.target.value)}
-                  placeholder="25 Finsbury Circus"
-                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedBizForBranch(null)}
-                >
-                  Close
-                </Button>
-                <Button type="submit" variant="primary" size="sm" loading={branchLoading}>
-                  Save Branch Location
-                </Button>
-              </div>
-            </form>
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBizForBranch(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={branchLoading}
+                    className="px-5 py-2 text-xs font-bold bg-[#1D68F2] hover:bg-[#1756cb] text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {branchLoading ? 'Adding...' : 'Save Branch'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </main>
   );
 }
