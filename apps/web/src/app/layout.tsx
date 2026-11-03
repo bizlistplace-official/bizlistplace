@@ -1,16 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/authContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-plus-jakarta',
-  display: 'swap',
-});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -80,30 +72,46 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-full ${plusJakartaSans.variable}`} suppressHydrationWarning>
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
         <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link rel="manifest" href="/manifest.json" />
+
+        {/* Preload primary local variable font to eliminate font render-blocking & chaining */}
+        <link
+          rel="preload"
+          href="/fonts/plus-jakarta-sans-latin.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+
+        {/* Deferred sanitization during browser idle to avoid forced reflows during critical rendering */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                document.addEventListener('DOMContentLoaded', function() {
+                var cleanExt = function() {
                   document.querySelectorAll('[bis_skin_checked], [bis_register]').forEach(function(el) {
                     el.removeAttribute('bis_skin_checked');
                     el.removeAttribute('bis_register');
                   });
-                });
+                };
+                if ('requestIdleCallback' in window) {
+                  window.requestIdleCallback(cleanExt, { timeout: 2000 });
+                } else {
+                  setTimeout(cleanExt, 500);
+                }
               } catch(e) {}
             `,
           }}
         />
       </head>
       <body
-        className={`flex flex-col min-h-screen overflow-x-hidden w-full max-w-full font-sans ${plusJakartaSans.className}`}
+        className="flex flex-col min-h-screen overflow-x-hidden w-full max-w-full font-sans"
         suppressHydrationWarning
       >
         <AuthProvider>

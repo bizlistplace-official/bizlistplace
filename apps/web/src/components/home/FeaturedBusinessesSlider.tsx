@@ -157,11 +157,12 @@ export function FeaturedBusinessesSlider({
     }
   }, [totalSlides, currentSlide]);
 
-  // Auto-play infinite rotation: 6, 6, 6, 6, 6, 6 then repeat
+  // Auto-play infinite rotation: 6, 6, 6, 6, 6, 6 then repeat (paused when tab hidden)
   useEffect(() => {
     if (isPaused || totalSlides <= 1) return;
 
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setIsAnimating(true);
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
     }, 5000);
@@ -319,7 +320,9 @@ export function FeaturedBusinessesSlider({
                   src={biz.photo}
                   alt={biz.name}
                   fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  loading="lazy"
+                  fetchPriority="low"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 340px"
                   unoptimized={biz.photo.startsWith('http')}
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />

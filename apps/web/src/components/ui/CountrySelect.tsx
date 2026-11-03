@@ -99,32 +99,40 @@ export function CountrySelect({
     return list;
   }, [includeAllOption, searchQuery, allOptionLabel, popularCountries, otherCountries]);
 
-  // Adjust positioning before opening: check viewport bounds
+  // Adjust positioning before opening: check viewport bounds without forced reflow
   useEffect(() => {
     if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
+      const rafId = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
 
-      if (spaceBelow < 330 && spaceAbove > spaceBelow) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
-
-      if (align === 'auto') {
-        if (rect.left + 300 > viewportWidth) {
-          setAlignRight(true);
+        if (spaceBelow < 330 && spaceAbove > spaceBelow) {
+          setOpenUpward(true);
         } else {
-          setAlignRight(false);
+          setOpenUpward(false);
         }
-      }
 
-      setTimeout(() => {
+        if (align === 'auto') {
+          if (rect.left + 300 > viewportWidth) {
+            setAlignRight(true);
+          } else {
+            setAlignRight(false);
+          }
+        }
+      });
+
+      const focusTimer = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 30);
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(focusTimer);
+      };
     } else {
       setSearchQuery('');
       setHighlightedIndex(-1);

@@ -9,6 +9,7 @@ import { AuditLog } from './auditLog.model';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { AuditService } from '../../services/audit.service';
 import { EmailService } from '../../services/email.service';
+import { config } from '../../config';
 
 export class AdminController {
   static async getStats(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -142,7 +143,7 @@ export class AdminController {
       const { reason } = req.body;
       const admin = req.user!;
 
-      const business = await Business.findById(id);
+      const business = await Business.findById(id).populate('ownerId', 'name email');
       if (!business) {
         res.status(404).json({ success: false, message: 'Business not found.' });
         return;
@@ -153,6 +154,13 @@ export class AdminController {
       await business.save();
 
       await AuditService.log('business_rejected', 'business', id, { reason }, admin._id, req.ip);
+
+      const recipientEmail = (business.ownerId as any)?.email || business.contactEmail;
+      if (recipientEmail) {
+        EmailService.sendListingRejectedNotification(recipientEmail, business.name, business.rejectionReason).catch(
+          (err) => console.error('[LISTING REJECTED EMAIL ERROR]:', err?.message || err)
+        );
+      }
 
       res.json({
         success: true,
@@ -410,6 +418,47 @@ export class AdminController {
       res.json({
         success: true,
         data: logs,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async testEmail(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const targetEmail = req.body?.toEmail || req.user?.email || config.email.adminEmail;
+      const result = await EmailService.sendTestEmail(targetEmail);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `Test email successfully dispatched to ${targetEmail}.`,
+          messageId: result.messageId,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: `Failed to deliver test email: ${result.error}`,
+        });
+      }
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async verifySmtp(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const verification = await EmailService.verifyConnection();
+      res.json({
+        success: verification.success,
+        message: verification.message,
+        smtpConfig: {
+          host: config.email.smtpHost,
+          port: config.email.smtpPort,
+          secure: config.email.smtpSecure,
+          fromUser: config.email.smtpUser,
+          fromName: config.email.fromName,
+        },
       });
     } catch (err) {
       next(err);

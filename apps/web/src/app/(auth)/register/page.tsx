@@ -97,7 +97,7 @@ function RegisterForm() {
           Create Account
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto">
-          Sign up to list your business on Biz List Place
+          Sign up to list your business on BizListPlace
         </p>
       </div>
 

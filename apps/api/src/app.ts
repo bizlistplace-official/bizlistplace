@@ -16,6 +16,7 @@ import reviewRoutes from './modules/reviews/review.routes';
 import claimRoutes from './modules/claims/claim.routes';
 import reportRoutes from './modules/reports/report.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import contactRoutes from './modules/contact/contact.routes';
 import { BusinessController } from './modules/businesses/business.controller';
 import { requireAuth } from './middleware/auth';
 import mongoose from 'mongoose';
@@ -99,6 +100,7 @@ app.use('/api/v1', reviewRoutes);
 app.use('/api/v1', claimRoutes);
 app.use('/api/v1', reportRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/contact', contactRoutes);
 app.get('/api/v1/owner/businesses', requireAuth, BusinessController.getOwnerBusinesses);
 
 // 404 handler for API routes

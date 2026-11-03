@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
   devIndicators: false,
   images: {
+    formats: ['image/avif', 'image/webp'],
+    qualities: [70, 75, 80],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1440, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: 'https',
@@ -17,8 +22,20 @@ const nextConfig = {
     ],
   },
   transpilePackages: ['@bizpockethub/shared'],
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   experimental: {
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: ['lucide-react', '@bizpockethub/shared'],
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // In-memory cache in development eliminates Windows NTFS PackFileCacheStrategy file rename collisions
+      config.cache = {
+        type: 'memory',
+      };
+    }
+    return config;
   },
   async headers() {
     return [
@@ -28,6 +45,15 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=120, stale-while-revalidate=600',
+          },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

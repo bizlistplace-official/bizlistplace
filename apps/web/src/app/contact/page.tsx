@@ -1,20 +1,41 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, CheckCircle, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle, Send, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { fetchApi } from '@/lib/api';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    setErrorMsg('');
+    setLoading(true);
+
+    try {
+      const res = await fetchApi<{ message?: string }>('/contact', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      if (res.success) {
+        setSent(true);
+      } else {
+        setErrorMsg(res.message || 'Unable to deliver message at this time. Please try again.');
+      }
+    } catch {
+      setErrorMsg('Network error. Please try again or email us directly.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,15 +58,17 @@ export default function ContactPage() {
             <h2 className="font-bold text-sm text-slate-900">Direct Contact</h2>
             <div className="space-y-3 text-xs text-slate-600">
               <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                <span>support@bizlistplace.com</span>
+                <Mail className="w-4 h-4 text-[#1D68F2] flex-shrink-0" />
+                <a href="mailto:bizlistplaceofficial@gmail.com" className="hover:underline">
+                  bizlistplaceofficial@gmail.com
+                </a>
               </div>
               <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                <Phone className="w-4 h-4 text-[#1D68F2] flex-shrink-0" />
                 <span>+1 (800) 555-BIZLIST</span>
               </div>
               <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-[#1D68F2] flex-shrink-0 mt-0.5" />
                 <span>Global Compliance & Directory Desk, Worldwide Operations</span>
               </div>
             </div>
@@ -58,12 +81,32 @@ export default function ContactPage() {
               <CheckCircle className="w-12 h-12 text-emerald-600 mx-auto" />
               <h2 className="font-bold text-lg text-slate-900">Message Received</h2>
               <p className="text-xs text-slate-600 max-w-md mx-auto">
-                Thank you for contacting us. A member of our support team will respond to your email
-                within 24 hours.
+                Thank you for contacting us. A confirmation has been dispatched to <strong>{email}</strong>,
+                and a member of our support team will respond to your inquiry within 24 hours.
               </p>
+              <div className="pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSent(false);
+                    setMessage('');
+                    setSubject('');
+                  }}
+                >
+                  Send Another Message
+                </Button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMsg && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="contact-name" className="block text-xs font-semibold text-slate-700 mb-1">
@@ -77,7 +120,8 @@ export default function ContactPage() {
                     autoComplete="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="e.g. John Doe"
+                    className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2] focus:border-[#1D68F2]"
                   />
                 </div>
                 <div>
@@ -92,7 +136,8 @@ export default function ContactPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="e.g. john@company.com"
+                    className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2] focus:border-[#1D68F2]"
                   />
                 </div>
               </div>
@@ -109,7 +154,7 @@ export default function ContactPage() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Listing Verification Inquiry"
-                  className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2] focus:border-[#1D68F2]"
                 />
               </div>
 
@@ -125,13 +170,19 @@ export default function ContactPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Provide details about your query..."
-                  className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2] focus:border-[#1D68F2]"
                 />
               </div>
 
-              <Button type="submit" variant="primary" size="md" className="gap-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                loading={loading}
+                className="gap-2 bg-[#1D68F2] hover:bg-[#1756cb] text-white"
+              >
                 <Send className="w-4 h-4" />
-                Send Inquiry
+                <span>Send Inquiry</span>
               </Button>
             </form>
           )}

@@ -11,6 +11,16 @@ export interface IUserDocument extends Document {
   emailVerifiedAt: Date | null;
   resetPasswordToken?: string | null;
   resetPasswordExpires?: Date | null;
+  passwordResetOtp?: string | null;
+  passwordResetOtpExpires?: Date | null;
+  passwordResetAttempts?: number;
+  lastPasswordResetOtpSentAt?: Date | null;
+  resetSessionToken?: string | null;
+  resetSessionExpires?: Date | null;
+  emailVerificationOtp?: string | null;
+  emailVerificationToken?: string | null;
+  emailVerificationExpires?: Date | null;
+  emailVerificationAttempts?: number;
   comparePassword(candidate: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +68,48 @@ const UserSchema = new Schema<IUserDocument>(
     },
     resetPasswordExpires: {
       type: Date,
+      select: false,
+    },
+    passwordResetOtp: {
+      type: String,
+      select: false,
+    },
+    passwordResetOtpExpires: {
+      type: Date,
+      select: false,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lastPasswordResetOtpSentAt: {
+      type: Date,
+      select: false,
+    },
+    resetSessionToken: {
+      type: String,
+      select: false,
+    },
+    resetSessionExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationOtp: {
+      type: String,
+      select: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
       select: false,
     },
   },

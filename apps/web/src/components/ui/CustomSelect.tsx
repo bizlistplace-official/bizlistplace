@@ -90,37 +90,46 @@ export function CustomSelect({
     );
   }, [options, searchQuery]);
 
-  // Adjust positioning before opening: check viewport bounds
+  // Adjust positioning before opening: check viewport bounds without forced reflow
   useEffect(() => {
     if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
+      const rafId = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
 
-      // If less than 330px below and more space above, open upward
-      if (spaceBelow < 330 && spaceAbove > spaceBelow) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
-
-      // If near right edge of viewport
-      if (align === 'auto') {
-        if (rect.left + 260 > viewportWidth) {
-          setAlignRight(true);
+        // If less than 330px below and more space above, open upward
+        if (spaceBelow < 330 && spaceAbove > spaceBelow) {
+          setOpenUpward(true);
         } else {
-          setAlignRight(false);
+          setOpenUpward(false);
         }
-      }
+
+        // If near right edge of viewport
+        if (align === 'auto') {
+          if (rect.left + 260 > viewportWidth) {
+            setAlignRight(true);
+          } else {
+            setAlignRight(false);
+          }
+        }
+      });
 
       // Focus search input on open if searchable
+      let focusTimer: NodeJS.Timeout | undefined;
       if (isSearchable) {
-        setTimeout(() => {
+        focusTimer = setTimeout(() => {
           searchInputRef.current?.focus();
         }, 30);
       }
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        if (focusTimer) clearTimeout(focusTimer);
+      };
     } else {
       setSearchQuery('');
       setHighlightedIndex(-1);

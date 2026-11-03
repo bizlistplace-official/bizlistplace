@@ -14,11 +14,11 @@ interface CacheEntry {
 const memoryCache = new Map<string, CacheEntry>();
 
 function getCacheTtlMs(endpoint: string): number {
-  if (endpoint.startsWith('/locations') || endpoint.includes('/countries')) return 300_000; // 5 mins
-  if (endpoint.startsWith('/categories')) return 120_000; // 2 mins
-  if (endpoint.includes('/featured')) return 60_000; // 1 min
-  if (endpoint.startsWith('/businesses')) return 30_000; // 30s
-  return 20_000; // 20s default for other public GETs
+  if (endpoint.startsWith('/locations') || endpoint.includes('/countries')) return 600_000; // 10 mins
+  if (endpoint.startsWith('/categories')) return 600_000; // 10 mins
+  if (endpoint.includes('/featured')) return 300_000; // 5 mins
+  if (endpoint.startsWith('/businesses')) return 120_000; // 2 mins
+  return 60_000; // 1 min default for public GETs
 }
 
 export function clearApiCache(): void {

@@ -8,8 +8,8 @@ import {
 
 // Authentication Schemas
 export const RegisterSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(80),
-  email: z.string().email('Invalid email address').toLowerCase().trim(),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(80),
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -20,18 +20,30 @@ export const RegisterSchema = z.object({
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 
 export const LoginSchema = z.object({
-  email: z.string().email('Invalid email address').toLowerCase().trim(),
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 export type LoginInput = z.infer<typeof LoginSchema>;
 
 export const ForgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address').toLowerCase().trim(),
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
 });
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 
+export const VerifyResetOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Invalid email address'),
+  otp: z
+    .string()
+    .trim()
+    .length(6, 'Verification code must be exactly 6 digits')
+    .regex(/^[0-9]{6}$/, 'Code must contain only 6 digits'),
+});
+export type VerifyResetOtpInput = z.infer<typeof VerifyResetOtpSchema>;
+
 export const ResetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
+  token: z.string().optional(),
+  resetSessionToken: z.string().optional(),
+  email: z.string().trim().toLowerCase().email().optional(),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

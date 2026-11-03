@@ -229,7 +229,7 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-2xl font-black text-slate-900 mb-2">No Business Listings Linked Yet</h2>
               <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed">
-                You haven&apos;t registered or claimed any business listings on BizBranches. List your business now to start receiving customer reviews, inquiries, and local leads.
+                You haven&apos;t registered or claimed any business listings on BizListPlace. List your business now to start receiving customer reviews, inquiries, and local leads.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3.5 justify-center pt-2">
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                     <div className="p-4 bg-amber-50/90 border border-amber-200 text-amber-950 rounded-2xl text-xs sm:text-sm flex items-start sm:items-center gap-3">
                       <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
                       <div className="leading-relaxed">
-                        <strong>This listing is currently pending review by our moderation team.</strong> It will be published publicly on BizBranches once verified.
+                        <strong>This listing is currently pending review by our moderation team.</strong> It will be published publicly on BizListPlace once verified.
                       </div>
                     </div>
                   )}

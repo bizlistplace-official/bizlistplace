@@ -71,8 +71,8 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
           fill
           priority
           fetchPriority="high"
-          loading="eager"
-          sizes="100vw"
+          quality={70}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, (max-width: 1440px) 1440px, 100vw"
           className="object-cover object-[center_42%]"
         />
       </div>

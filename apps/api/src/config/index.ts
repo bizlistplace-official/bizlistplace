@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env from root or apps/api
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 export const config = {
@@ -26,5 +27,15 @@ export const config = {
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
     max: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
+  },
+  email: {
+    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+    smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+    smtpSecure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+    smtpUser: process.env.SMTP_USER || 'bizlistplaceofficial@gmail.com',
+    smtpPass: process.env.SMTP_PASS || '',
+    fromName: process.env.SMTP_FROM_NAME || 'Biz List Place',
+    fromEmail: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'bizlistplaceofficial@gmail.com',
+    adminEmail: process.env.ADMIN_EMAIL || 'bizlistplaceofficial@gmail.com',
   },
 };

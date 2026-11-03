@@ -6,6 +6,7 @@ import { Review } from '../reviews/review.model';
 import { Category } from '../categories/category.model';
 import { SearchService } from '../../services/search.service';
 import { AuditService } from '../../services/audit.service';
+import { EmailService } from '../../services/email.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { POPULAR_COUNTRIES } from '@bizpockethub/shared';
 
@@ -321,6 +322,22 @@ export class BusinessController {
       await AuditService.log('business_created', 'business', business._id.toString(), {
         status: listingStatus,
       }, user._id, req.ip);
+
+      // 1. Dispatch confirmation email to submitter
+      EmailService.sendListingSubmissionConfirmation(
+        business.contactEmail || user.email,
+        business.name,
+        user.name
+      ).catch((err) => console.error('[SUBMISSION CONFIRMATION EMAIL ERROR]:', err?.message || err));
+
+      // 2. Dispatch alert email to administrator
+      EmailService.sendNewBusinessAdminAlert({
+        name: business.name,
+        slug: business.slug,
+        contactEmail: business.contactEmail || user.email,
+        city: createdLocation?.city,
+        countryCode: business.countryCode,
+      }).catch((err) => console.error('[NEW BUSINESS ADMIN EMAIL ERROR]:', err?.message || err));
 
       res.status(201).json({
         success: true,
