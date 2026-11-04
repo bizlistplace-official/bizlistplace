@@ -6,7 +6,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { CategoryFilterList } from '@/components/business/CategoryFilterList';
 import { SearchTopBar } from '@/components/search/SearchTopBar';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { IBusiness, ICategory } from '@bizpockethub/shared';
+import { IBusiness, ICategory, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 import { Search, Filter, X, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 
@@ -60,7 +60,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ? searchRes.data
     : (searchRes.data as any)?.data || [];
   const pagination = (searchRes as any).pagination || (searchRes.data as any)?.pagination || { total: businesses.length, page: 1, limit: 12, totalPages: 1 };
-  const categories = categoriesRes.data || [];
+  const apiCats = categoriesRes.data || [];
+  const apiMap = new Map<string, ICategory>();
+  apiCats.forEach((c) => {
+    if (c.slug) apiMap.set(c.slug, c);
+  });
+  const categories: ICategory[] = INITIAL_CATEGORIES.map((ic) => {
+    const fromApi = apiMap.get(ic.slug);
+    return fromApi ? ({ ...ic, ...fromApi } as ICategory) : (ic as unknown as ICategory);
+  });
+  const initSlugs = new Set(INITIAL_CATEGORIES.map((c) => c.slug));
+  apiCats.forEach((c) => {
+    if (!initSlugs.has(c.slug)) {
+      categories.push(c);
+    }
+  });
 
   const hasFilters = Boolean(q || category || country || city || businessType || verifiedOnly);
 

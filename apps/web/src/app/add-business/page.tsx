@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/authContext';
 import { fetchApi } from '@/lib/api';
-import { ICategory } from '@bizpockethub/shared';
+import { ICategory, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 import { Button } from '@/components/ui/Button';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -79,7 +79,9 @@ const DEFAULT_SCHEDULE: Record<DayKey, DaySchedule> = {
 export default function AddBusinessPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [categories, setCategories] = useState<Array<Partial<ICategory> & { _id?: string; slug: string; name: string }>>(
+    () => [...INITIAL_CATEGORIES]
+  );
 
   // Automatically redirect unauthenticated users to login with redirect param
   useEffect(() => {
@@ -162,9 +164,56 @@ export default function AddBusinessPage() {
 
   useEffect(() => {
     fetchApi<ICategory[]>('/categories').then((res) => {
-      if (res.success && res.data) setCategories(res.data);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const apiMap = new Map<string, ICategory>();
+        res.data.forEach((c) => {
+          if (c.slug) apiMap.set(c.slug, c);
+        });
+
+        // Merge INITIAL_CATEGORIES with API categories so all 38+ categories are present with Mongo _ids
+        const merged: Array<Partial<ICategory> & { _id?: string; slug: string; name: string }> = INITIAL_CATEGORIES.map(
+          (ic) => {
+            const fromApi = apiMap.get(ic.slug);
+            return fromApi ? { ...ic, ...fromApi } : ic;
+          }
+        );
+
+        // Include any extra categories from the API not present in INITIAL_CATEGORIES
+        const initialSlugs = new Set(INITIAL_CATEGORIES.map((c) => c.slug));
+        res.data.forEach((c) => {
+          if (!initialSlugs.has(c.slug)) {
+            merged.push(c);
+          }
+        });
+
+        setCategories(merged);
+
+        // If category was previously selected by slug, sync it to _id if available
+        setCategoryIds((prev) => {
+          if (prev.length === 0) return prev;
+          const currentVal = prev[0];
+          const matched = merged.find((c) => c.slug === currentVal || c._id === currentVal);
+          return matched?._id ? [matched._id] : prev;
+        });
+      }
     });
   }, []);
+
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((c) => ({
+        value: c._id || c.slug,
+        label: c.name,
+      })),
+    [categories]
+  );
+
+  const selectedCategoryValue = useMemo(() => {
+    const current = categoryIds[0];
+    if (!current) return '';
+    const found = categories.find((c) => c._id === current || c.slug === current);
+    return found ? (found._id || found.slug) : current;
+  }, [categoryIds, categories]);
 
   // Pre-fill user email once loaded
   useEffect(() => {
@@ -754,15 +803,12 @@ export default function AddBusinessPage() {
                       CATEGORY <span className="text-rose-500">*</span>
                     </label>
                     <CustomSelect
-                      value={categoryIds[0] || ''}
+                      value={selectedCategoryValue}
                       onChange={(val) => {
                         setCategoryIds(val ? [val] : []);
                         markTouched('category');
                       }}
-                      options={categories.map((c) => ({
-                        value: c._id || c.slug,
-                        label: c.name,
-                      }))}
+                      options={categoryOptions}
                       placeholder="Select a category"
                       searchable
                       searchPlaceholder="Search category..."

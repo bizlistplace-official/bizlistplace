@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { fetchApi } from '@/lib/api';
-import { IBusiness, IClaimRequest, IBusinessLocation } from '@bizpockethub/shared';
+import { IBusiness, IClaimRequest, IBusinessLocation, ICategory, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { CountrySelect } from '@/components/ui/CountrySelect';
@@ -32,6 +32,10 @@ import {
   Globe,
   ChevronRight,
   TrendingUp,
+  Pencil,
+  Trash2,
+  Loader2,
+  X,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -39,6 +43,9 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [businesses, setBusinesses] = useState<IBusiness[]>([]);
   const [claims, setClaims] = useState<IClaimRequest[]>([]);
+  const [categories, setCategories] = useState<Array<Partial<ICategory> & { _id?: string; slug: string; name: string }>>(
+    () => [...INITIAL_CATEGORIES]
+  );
   const [loading, setLoading] = useState(true);
 
   // Active business index (for multi-business switcher)
@@ -49,6 +56,34 @@ export default function DashboardPage() {
 
   // Copy Link State
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Global action notification
+  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Edit Business Modal State
+  const [editingBusiness, setEditingBusiness] = useState<IBusiness | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editShortDescription, setEditShortDescription] = useState('');
+  const [editCountryCode, setEditCountryCode] = useState('PK');
+  const [editCity, setEditCity] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editLogoUrl, setEditLogoUrl] = useState('');
+  const [editFacebook, setEditFacebook] = useState('');
+  const [editInstagram, setEditInstagram] = useState('');
+  const [editLinkedin, setEditLinkedin] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSuccess, setEditSuccess] = useState('');
+  const [editError, setEditError] = useState('');
+
+  // Delete Business Modal State
+  const [deletingBusiness, setDeletingBusiness] = useState<IBusiness | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Branch Modal State
   const [selectedBizForBranch, setSelectedBizForBranch] = useState<IBusiness | null>(null);
@@ -64,9 +99,10 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [bizRes, claimRes] = await Promise.all([
+    const [bizRes, claimRes, catRes] = await Promise.all([
       fetchApi<IBusiness[]>('/owner/businesses'),
       fetchApi<IClaimRequest[]>('/owner/claims'),
+      fetchApi<ICategory[]>('/categories'),
     ]);
 
     if (bizRes.success && bizRes.data) {
@@ -74,6 +110,26 @@ export default function DashboardPage() {
     }
     if (claimRes.success && claimRes.data) {
       setClaims(Array.isArray(claimRes.data) ? claimRes.data : (claimRes.data as any).data || []);
+    }
+    if (catRes.success && Array.isArray(catRes.data) && catRes.data.length > 0) {
+      const apiMap = new Map<string, ICategory>();
+      catRes.data.forEach((c) => {
+        if (c.slug) apiMap.set(c.slug, c);
+      });
+      const merged: Array<Partial<ICategory> & { _id?: string; slug: string; name: string }> = INITIAL_CATEGORIES.map(
+        (ic) => {
+          const fromApi = apiMap.get(ic.slug);
+          return fromApi ? { ...ic, ...fromApi } : ic;
+        }
+      );
+      const initialSlugs = new Set(INITIAL_CATEGORIES.map((c) => c.slug));
+      catRes.data.forEach((c) => {
+        if (!initialSlugs.has(c.slug)) {
+          merged.push(c);
+        }
+      });
+      merged.sort((a, b) => a.name.localeCompare(b.name));
+      setCategories(merged);
     }
     setLoading(false);
   };
@@ -95,6 +151,143 @@ export default function DashboardPage() {
     const locs = (b as any).locations || [];
     return acc + (locs.length || 1);
   }, 0);
+
+  const getCategoryName = (biz: IBusiness): string => {
+    if (biz.primaryCategory?.name) return biz.primaryCategory.name;
+    if (Array.isArray(biz.categoryIds) && biz.categoryIds.length > 0) {
+      const first = biz.categoryIds[0];
+      if (typeof first === 'object' && (first as any)?.name) {
+        return (first as any).name;
+      }
+      const found = categories.find((c) => c._id === String(first) || c.slug === String(first));
+      if (found) return found.name;
+    }
+    return 'General Business';
+  };
+
+  const handleOpenEditModal = (biz: IBusiness) => {
+    setEditingBusiness(biz);
+    setEditName(biz.name || '');
+    let initialCatId = '';
+    if (Array.isArray(biz.categoryIds) && biz.categoryIds.length > 0) {
+      const first = biz.categoryIds[0];
+      initialCatId = typeof first === 'object' ? (first as any)._id : String(first);
+    } else if (biz.primaryCategory?._id) {
+      initialCatId = biz.primaryCategory._id;
+    }
+    setEditCategoryId(initialCatId);
+    setEditDescription(biz.description || '');
+    setEditShortDescription(biz.shortDescription || '');
+    setEditCountryCode(biz.countryCode || biz.primaryLocation?.countryCode || 'PK');
+    setEditCity(biz.primaryLocation?.city || '');
+    setEditAddress(biz.primaryLocation?.addressLine1 || '');
+    setEditPhone(biz.phone || biz.primaryLocation?.phone || '');
+    setEditEmail(biz.contactEmail || biz.primaryLocation?.email || '');
+    setEditWebsite(biz.website || '');
+    setEditLogoUrl(biz.logoUrl || '');
+    setEditFacebook(biz.socialLinks?.facebook || '');
+    setEditInstagram(biz.socialLinks?.instagram || '');
+    setEditLinkedin(biz.socialLinks?.linkedin || '');
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBusiness) return;
+
+    if (!editName.trim()) {
+      setEditError('Business name is required.');
+      return;
+    }
+
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    const payload: any = {
+      name: editName.trim(),
+      description: editDescription.trim(),
+      shortDescription: editShortDescription.trim() || editDescription.trim().slice(0, 160),
+      countryCode: (editCountryCode || 'PK').toUpperCase(),
+      phone: editPhone.trim(),
+      contactEmail: editEmail.trim(),
+      website: editWebsite.trim(),
+      logoUrl: editLogoUrl.trim(),
+      socialLinks: {
+        facebook: editFacebook.trim() || undefined,
+        instagram: editInstagram.trim() || undefined,
+        linkedin: editLinkedin.trim() || undefined,
+      },
+      primaryLocation: {
+        addressLine1: editAddress.trim(),
+        city: editCity.trim(),
+        countryCode: (editCountryCode || 'PK').toUpperCase(),
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+      },
+    };
+
+    if (editCategoryId) {
+      payload.categoryIds = [editCategoryId];
+    }
+
+    const res = await fetchApi<IBusiness>(`/businesses/${editingBusiness._id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+
+    setEditLoading(false);
+
+    if (res.success && res.data) {
+      const updated = res.data;
+      setEditSuccess('Business listing updated successfully!');
+      setActionNotice({
+        type: 'success',
+        message: `Listing "${editName}" was updated successfully.`,
+      });
+      // Update local state
+      setBusinesses((prev) =>
+        prev.map((b) => (b._id === editingBusiness._id ? { ...b, ...updated } : b))
+      );
+      setTimeout(() => {
+        setEditingBusiness(null);
+      }, 700);
+    } else {
+      setEditError(res.message || 'Failed to update business listing.');
+    }
+  };
+
+  const handleOpenDeleteModal = (biz: IBusiness) => {
+    setDeletingBusiness(biz);
+    setDeleteError('');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingBusiness) return;
+    setDeleteLoading(true);
+    setDeleteError('');
+
+    const res = await fetchApi(`/businesses/${deletingBusiness._id}`, {
+      method: 'DELETE',
+    });
+
+    setDeleteLoading(false);
+
+    if (res.success) {
+      const deletedId = deletingBusiness._id;
+      const deletedName = deletingBusiness.name;
+      setBusinesses((prev) => prev.filter((b) => b._id !== deletedId));
+      setSelectedBizIndex(0);
+      setDeletingBusiness(null);
+      setActionNotice({
+        type: 'success',
+        message: `Listing "${deletedName}" has been permanently deleted.`,
+      });
+    } else {
+      setDeleteError(res.message || 'Failed to delete business listing.');
+    }
+  };
 
   const handleCopyLink = (slug: string) => {
     const fullUrl = `${window.location.origin}/business/${slug}`;
@@ -298,6 +491,141 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Global Action Notification Toast */}
+            {actionNotice && (
+              <div
+                className={`p-4 rounded-2xl border text-xs sm:text-sm flex items-center justify-between gap-3 animate-in fade-in duration-200 ${
+                  actionNotice.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 font-medium">
+                  {actionNotice.type === 'success' ? (
+                    <Check className="w-5 h-5 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                  )}
+                  <span>{actionNotice.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionNotice(null)}
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* My Businesses Section (Exact layout from user's requested specification) */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  My Businesses
+                </h2>
+                <Link
+                  href="/add-business"
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#1D68F2] hover:bg-[#1756cb] text-white font-bold text-xs sm:text-sm shadow-xs transition-all shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Add New</span>
+                </Link>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {businesses.map((biz, idx) => {
+                  const catName = getCategoryName(biz);
+                  const isSelected = idx === selectedBizIndex;
+
+                  return (
+                    <div
+                      key={biz._id}
+                      className={`py-4 sm:py-5 flex items-center justify-between gap-4 transition-all rounded-2xl ${
+                        isSelected
+                          ? 'bg-blue-50/30 -mx-3 px-3 sm:-mx-4 sm:px-4'
+                          : 'hover:bg-slate-50/70 -mx-3 px-3 sm:-mx-4 sm:px-4'
+                      }`}
+                    >
+                      {/* Left: Logo + Info */}
+                      <div
+                        onClick={() => setSelectedBizIndex(idx)}
+                        className="flex items-center gap-3.5 sm:gap-4 min-w-0 cursor-pointer flex-1"
+                      >
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-slate-200 bg-white p-1 flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
+                          <img
+                            src={biz.logoUrl || '/images/biz_list_place_icon.jpg'}
+                            alt={biz.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = '/images/biz_list_place_icon.jpg';
+                            }}
+                          />
+                        </div>
+
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-extrabold text-slate-900 text-sm sm:text-base hover:text-[#1D68F2] transition-colors truncate">
+                              {biz.name}
+                            </span>
+                            {isSelected && (
+                              <span className="hidden sm:inline-flex text-[10px] font-bold text-[#1D68F2] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                Active in Spotlight
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">
+                              {catName}
+                            </span>
+
+                            {biz.listingStatus === 'published' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                Published
+                              </span>
+                            ) : biz.listingStatus === 'pending' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                Pending
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                Action Required
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions (Edit Pencil + Delete Trash) */}
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(biz)}
+                          title="Edit Business"
+                          className="p-2 sm:p-2.5 text-slate-500 hover:text-[#1D68F2] hover:bg-blue-50 rounded-xl transition-all cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDeleteModal(biz)}
+                          title="Delete Business"
+                          className="p-2 sm:p-2.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Active Business Spotlight Card */}
             {activeBusiness && (
               <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -348,6 +676,24 @@ export default function DashboardPage() {
                         <Eye className="w-3.5 h-3.5" />
                         <span>View Public Page</span>
                       </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(activeBusiness)}
+                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Edit Business</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDeleteModal(activeBusiness)}
+                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/60 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
 
                       <button
                         type="button"
@@ -599,45 +945,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* List of Other Registered Businesses (if multiple) */}
-            {businesses.length > 1 && (
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-extrabold text-slate-900">
-                  All Your Registered Businesses ({businesses.length})
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {businesses.map((biz, idx) => (
-                    <div
-                      key={biz._id}
-                      onClick={() => setSelectedBizIndex(idx)}
-                      className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-                        idx === selectedBizIndex
-                          ? 'border-[#1D68F2] bg-blue-50/30 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-extrabold text-slate-900 text-sm truncate">{biz.name}</h4>
-                        <Badge
-                          variant={biz.listingStatus === 'published' ? 'verified' : 'pending'}
-                          className="capitalize text-[10px]"
-                        >
-                          {biz.listingStatus}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2 line-clamp-1">
-                        /business/{biz.slug}
-                      </p>
-                      <div className="mt-3 text-[11px] font-bold text-[#1D68F2] flex items-center gap-1">
-                        <span>Select to manage</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* My Submitted Ownership Claims Section */}
             {claims.length > 0 && (
               <div className="space-y-4 pt-6 border-t border-slate-200">
@@ -837,6 +1144,327 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Edit Business Modal */}
+        {editingBusiness && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 my-8 space-y-6 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1D68F2] flex items-center justify-center shrink-0">
+                    <Pencil className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                      Edit Business Listing
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Update information for <strong>{editingBusiness.name}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingBusiness(null)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {editSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{editSuccess}</span>
+                </div>
+              )}
+
+              {editError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Business Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="e.g. Roshan Fabrics"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={editCategoryId}
+                      onChange={(e) => setEditCategoryId(e.target.value)}
+                      className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2] bg-white cursor-pointer"
+                    >
+                      <option value="">Select a Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Country *
+                    </label>
+                    <CountrySelect
+                      value={editCountryCode}
+                      onChange={(c) => {
+                        setEditCountryCode(c);
+                        setEditCity('');
+                      }}
+                      placeholder="Select Country"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      City
+                    </label>
+                    <CitySelect
+                      value={editCity}
+                      onChange={setEditCity}
+                      countryCode={editCountryCode}
+                      allowCustomInput
+                      placeholder={editCountryCode ? 'Select or type city...' : 'Select country first'}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="e.g. +92 300 1234567"
+                      className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Complete Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder="e.g. Shop #12, Commercial Market, Lahore"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="e.g. info@business.com"
+                      className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Official Website
+                    </label>
+                    <input
+                      type="url"
+                      value={editWebsite}
+                      onChange={(e) => setEditWebsite(e.target.value)}
+                      placeholder="e.g. https://www.example.com"
+                      className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Logo Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={editLogoUrl}
+                    onChange={(e) => setEditLogoUrl(e.target.value)}
+                    placeholder="e.g. https://example.com/logo.png"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Short Tagline / Summary
+                  </label>
+                  <input
+                    type="text"
+                    value={editShortDescription}
+                    onChange={(e) => setEditShortDescription(e.target.value)}
+                    placeholder="Brief 1-line business summary"
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Full Description *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Detailed description of your products, services, and business history..."
+                    className="w-full text-sm px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Facebook URL
+                    </label>
+                    <input
+                      type="url"
+                      value={editFacebook}
+                      onChange={(e) => setEditFacebook(e.target.value)}
+                      placeholder="facebook.com/..."
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Instagram URL
+                    </label>
+                    <input
+                      type="url"
+                      value={editInstagram}
+                      onChange={(e) => setEditInstagram(e.target.value)}
+                      placeholder="instagram.com/..."
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      LinkedIn URL
+                    </label>
+                    <input
+                      type="url"
+                      value={editLinkedin}
+                      onChange={(e) => setEditLinkedin(e.target.value)}
+                      placeholder="linkedin.com/company/..."
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D68F2]/20 focus:border-[#1D68F2]"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingBusiness(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editLoading}
+                    className="px-5 py-2 text-xs font-bold bg-[#1D68F2] hover:bg-[#1756cb] text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {editLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Changes</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deletingBusiness && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-slate-900">
+                  Delete Business Listing
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Are you sure you want to delete <strong>{deletingBusiness.name}</strong>? This action cannot be undone. All branches, reviews, and directory listings will be permanently deleted.
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingBusiness(null)}
+                  disabled={deleteLoading}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deleteLoading}
+                  className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Listing</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

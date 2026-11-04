@@ -3,6 +3,7 @@ import { app } from './app';
 import { config } from './config';
 import { connectDB } from './config/db';
 import { Category } from './modules/categories/category.model';
+import { CategoryController } from './modules/categories/category.controller';
 import { seed } from './scripts/seed';
 
 async function bootstrap() {
@@ -14,6 +15,8 @@ async function bootstrap() {
       if (count === 0) {
         console.log('📦 Database is currently empty. Running automated initial seed...');
         await seed(false);
+      } else {
+        await CategoryController.syncInitialCategories();
       }
     }
 

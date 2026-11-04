@@ -505,6 +505,91 @@ mockRouter.post('/businesses', (req: Request, res: Response) => {
   });
 });
 
+mockRouter.patch('/businesses/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const biz = mockBusinesses.find((b) => b._id === id || b.slug === id);
+  if (!biz) {
+    return res.status(404).json({ success: false, message: 'Business listing not found.' });
+  }
+
+  const allowed = [
+    'name',
+    'description',
+    'shortDescription',
+    'website',
+    'contactEmail',
+    'phone',
+    'logoUrl',
+    'coverImageUrl',
+    'categoryIds',
+    'businessType',
+    'countryCode',
+    'serviceAreas',
+    'socialLinks',
+  ];
+
+  allowed.forEach((f) => {
+    if (req.body[f] !== undefined) {
+      (biz as any)[f] = req.body[f];
+    }
+  });
+
+  if (req.body.primaryLocation || req.body.addressLine1 || req.body.city) {
+    const loc = req.body.primaryLocation || {};
+    biz.primaryLocation = {
+      ...(biz.primaryLocation || {
+        businessId: biz._id,
+        branchSlug: 'primary',
+        branchName: 'Headquarters',
+        isPrimary: true,
+        region: '',
+        countryCode: biz.countryCode || 'PK',
+        addressLine1: '',
+        city: '',
+      }),
+      addressLine1: loc.addressLine1 || req.body.addressLine1 || biz.primaryLocation?.addressLine1 || '',
+      city: loc.city || req.body.city || biz.primaryLocation?.city || '',
+      region: loc.region || req.body.region || biz.primaryLocation?.region || '',
+      countryCode: (loc.countryCode || req.body.countryCode || biz.countryCode || 'PK').toUpperCase(),
+      phone: loc.phone || req.body.phone || biz.phone || '',
+      email: loc.email || req.body.contactEmail || biz.contactEmail || '',
+    };
+    if (biz.locations && biz.locations.length > 0) {
+      biz.locations[0] = { ...biz.locations[0], ...biz.primaryLocation };
+    } else {
+      biz.locations = [biz.primaryLocation];
+    }
+  }
+
+  if (req.body.categoryIds && req.body.categoryIds.length > 0) {
+    const catId = typeof req.body.categoryIds[0] === 'object' ? req.body.categoryIds[0]._id : req.body.categoryIds[0];
+    const cat = mockCategories.find((c) => c._id === catId || c.slug === catId);
+    if (cat) {
+      biz.primaryCategory = cat;
+    }
+  }
+
+  res.json({
+    success: true,
+    message: 'Listing updated successfully.',
+    data: biz,
+  });
+});
+
+mockRouter.delete('/businesses/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = mockBusinesses.findIndex((b) => b._id === id || b.slug === id);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: 'Business listing not found.' });
+  }
+
+  mockBusinesses.splice(idx, 1);
+  res.json({
+    success: true,
+    message: 'Business listing and associated data removed.',
+  });
+});
+
 mockRouter.get('/businesses/recent', (req: Request, res: Response) => {
   const countryCodes = normalizeCountryCodes(req.query.country);
   const filtered = mockBusinesses

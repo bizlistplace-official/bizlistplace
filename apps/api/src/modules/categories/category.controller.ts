@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Category } from './category.model';
 import { Business } from '../businesses/business.model';
 import { SearchService } from '../../services/search.service';
+import { INITIAL_CATEGORIES } from '@bizpockethub/shared';
 
 // In-memory cache for category listing with business counts
 let cachedCategoryList: { data: any[]; timestamp: number } | null = null;
@@ -11,6 +12,28 @@ export class CategoryController {
   static invalidateCache(): void {
     cachedCategoryList = null;
     SearchService.invalidateCategoryCache();
+  }
+
+  static async syncInitialCategories(): Promise<void> {
+    try {
+      const existing = await Category.find({}).select('slug').lean();
+      const existingSlugs = new Set(existing.map((c) => c.slug));
+      const missing = INITIAL_CATEGORIES.filter((c) => !existingSlugs.has(c.slug));
+
+      if (missing.length > 0) {
+        console.log(`[CategorySync] Adding ${missing.length} missing categories to MongoDB...`);
+        await Category.insertMany(
+          missing.map((c) => ({
+            ...c,
+            isActive: true,
+          }))
+        );
+        CategoryController.invalidateCache();
+        console.log(`[CategorySync] Successfully synchronized all ${INITIAL_CATEGORIES.length} categories.`);
+      }
+    } catch (err: any) {
+      console.error('[CategorySync] Failed to synchronize categories:', err.message);
+    }
   }
 
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -25,6 +48,9 @@ export class CategoryController {
         });
         return;
       }
+
+      // Ensure any missing categories from INITIAL_CATEGORIES are synced into MongoDB
+      await CategoryController.syncInitialCategories();
 
       // Execute category lookup and count aggregation in parallel using Promise.all() with covered project
       const [categories, counts] = await Promise.all([

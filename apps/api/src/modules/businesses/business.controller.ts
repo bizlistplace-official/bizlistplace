@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose, { Types } from 'mongoose';
 import slugify from 'slugify';
 import { Business } from './business.model';
 import { BusinessLocation } from './businessLocation.model';
@@ -9,7 +10,7 @@ import { SearchService } from '../../services/search.service';
 import { AuditService } from '../../services/audit.service';
 import { EmailService } from '../../services/email.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
-import { POPULAR_COUNTRIES } from '@bizpockethub/shared';
+import { POPULAR_COUNTRIES, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 
 export class BusinessController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -289,6 +290,34 @@ export class BusinessController {
       const listingStatus = user.role === 'admin' ? 'published' : 'pending';
       const publishedAt = listingStatus === 'published' ? new Date() : null;
 
+      // Resolve categoryIds (handles both MongoDB ObjectIds and category slugs)
+      let resolvedCategoryIds: Types.ObjectId[] = [];
+      if (Array.isArray(categoryIds) && categoryIds.length > 0) {
+        for (const rawCat of categoryIds) {
+          if (!rawCat) continue;
+          const idOrSlug = typeof rawCat === 'object' && rawCat._id ? String(rawCat._id) : String(rawCat).trim();
+          if (mongoose.Types.ObjectId.isValid(idOrSlug) && idOrSlug.length === 24) {
+            resolvedCategoryIds.push(new mongoose.Types.ObjectId(idOrSlug) as unknown as Types.ObjectId);
+          } else {
+            // Find or create category by slug
+            let foundCat = await Category.findOne({ slug: idOrSlug });
+            if (!foundCat) {
+              const matchedInitial = INITIAL_CATEGORIES.find((c) => c.slug === idOrSlug);
+              if (matchedInitial) {
+                foundCat = await Category.create({
+                  ...matchedInitial,
+                  isActive: true,
+                });
+                CategoryController.invalidateCache();
+              }
+            }
+            if (foundCat) {
+              resolvedCategoryIds.push(foundCat._id as Types.ObjectId);
+            }
+          }
+        }
+      }
+
       const business = await Business.create({
         name,
         slug: uniqueSlug,
@@ -300,7 +329,7 @@ export class BusinessController {
         phone: phone || '',
         logoUrl: logoUrl || '',
         coverImageUrl: coverImageUrl || '',
-        categoryIds,
+        categoryIds: resolvedCategoryIds,
         businessType: businessType || 'physical',
         countryCode: (primaryLocation?.countryCode || req.body.countryCode || 'PK').toUpperCase(),
         serviceAreas: serviceAreas || [],
@@ -423,25 +452,95 @@ export class BusinessController {
         'coverImageUrl',
         'categoryIds',
         'businessType',
+        'countryCode',
         'serviceAreas',
         'socialLinks',
       ];
 
       allowedFields.forEach((field) => {
-        if (req.body[field] !== undefined) {
+        if (field !== 'categoryIds' && req.body[field] !== undefined) {
           (business as any)[field] = req.body[field];
         }
       });
 
+      if (req.body.categoryIds && Array.isArray(req.body.categoryIds)) {
+        const resolvedCategoryIds: Types.ObjectId[] = [];
+        for (const rawCat of req.body.categoryIds) {
+          if (!rawCat) continue;
+          const idOrSlug = typeof rawCat === 'object' && rawCat._id ? String(rawCat._id) : String(rawCat).trim();
+          if (mongoose.Types.ObjectId.isValid(idOrSlug) && idOrSlug.length === 24) {
+            resolvedCategoryIds.push(new mongoose.Types.ObjectId(idOrSlug) as unknown as Types.ObjectId);
+          } else {
+            let foundCat = await Category.findOne({ slug: idOrSlug });
+            if (!foundCat) {
+              const matchedInitial = INITIAL_CATEGORIES.find((c) => c.slug === idOrSlug);
+              if (matchedInitial) {
+                foundCat = await Category.create({
+                  ...matchedInitial,
+                  isActive: true,
+                });
+                CategoryController.invalidateCache();
+              }
+            }
+            if (foundCat) {
+              resolvedCategoryIds.push(foundCat._id as Types.ObjectId);
+            }
+          }
+        }
+        business.categoryIds = resolvedCategoryIds;
+      }
+
+      if (req.body.countryCode) {
+        business.countryCode = req.body.countryCode.toUpperCase();
+      }
+
+      if (req.body.primaryLocation || req.body.addressLine1 || req.body.city) {
+        const loc = req.body.primaryLocation || {};
+        const updateLoc: any = {};
+        if (loc.addressLine1 || req.body.addressLine1) updateLoc.addressLine1 = loc.addressLine1 || req.body.addressLine1;
+        if (loc.city || req.body.city) updateLoc.city = loc.city || req.body.city;
+        if (loc.region || req.body.region) updateLoc.region = loc.region || req.body.region || updateLoc.city;
+        if (loc.countryCode || req.body.countryCode) updateLoc.countryCode = (loc.countryCode || req.body.countryCode).toUpperCase();
+        if (loc.phone || req.body.phone) updateLoc.phone = loc.phone || req.body.phone;
+        if (loc.email || req.body.contactEmail) updateLoc.email = loc.email || req.body.contactEmail;
+
+        const primaryLoc = await BusinessLocation.findOne({ businessId: id, isPrimary: true });
+        if (primaryLoc) {
+          Object.assign(primaryLoc, updateLoc);
+          await primaryLoc.save();
+        } else {
+          await BusinessLocation.create({
+            businessId: id,
+            branchSlug: 'primary',
+            branchName: 'Headquarters',
+            isPrimary: true,
+            countryCode: business.countryCode || 'PK',
+            city: updateLoc.city || 'Local Area',
+            region: updateLoc.region || updateLoc.city || 'Local Area',
+            addressLine1: updateLoc.addressLine1 || 'Main Office',
+            phone: updateLoc.phone || business.phone || '',
+            email: updateLoc.email || business.contactEmail || '',
+          });
+        }
+      }
+
       // If regular user edits name, optionally update slug if desired or keep stable for SEO
       await business.save();
+      await business.populate('categoryIds');
+
+      const locations = await BusinessLocation.find({ businessId: id }).lean();
+      const enriched = {
+        ...business.toObject(),
+        locations,
+        primaryLocation: locations.find((l) => l.isPrimary) || locations[0],
+      };
 
       await AuditService.log('business_updated', 'business', business._id.toString(), {}, user._id, req.ip);
 
       res.json({
         success: true,
         message: 'Listing updated successfully.',
-        data: business,
+        data: enriched,
       });
     } catch (err) {
       next(err);
