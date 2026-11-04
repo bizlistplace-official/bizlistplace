@@ -122,6 +122,44 @@ export default function AddBusinessPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Validation State
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const errors = useMemo(() => {
+    const errs: Record<string, string> = {};
+    if (name.trim().length < 2) {
+      errs.name = 'Business Name is required (min 2 characters)';
+    }
+    if (contactPersonName.trim().length < 2) {
+      errs.contactPersonName = 'Contact Person Name is required';
+    }
+    if (phone.trim().length < 5) {
+      errs.phone = 'Phone Number is required';
+    }
+    if (!city.trim()) {
+      errs.city = 'City is required';
+    }
+    if (categoryIds.length === 0) {
+      errs.category = 'Category is required';
+    }
+    if (!addressLine1.trim()) {
+      errs.addressLine1 = 'Complete Address is required';
+    }
+    if (description.trim().length < 20) {
+      errs.description = 'Business Description is required (min 20 characters)';
+    }
+    return errs;
+  }, [name, contactPersonName, phone, city, categoryIds, addressLine1, description]);
+
+  const isFieldInvalid = (fieldName: string) => {
+    return (hasSubmitted || touched[fieldName]) && Boolean(errors[fieldName]);
+  };
+
+  const markTouched = (fieldName: string) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+  };
+
   useEffect(() => {
     fetchApi<ICategory[]>('/categories').then((res) => {
       if (res.success && res.data) setCategories(res.data);
@@ -216,6 +254,7 @@ export default function AddBusinessPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setHasSubmitted(true);
     if (isSubmitted || loading) return;
     setErrorMsg('');
     setSuccessMsg('');
@@ -225,38 +264,12 @@ export default function AddBusinessPage() {
       return;
     }
 
-    if (name.trim().length < 2) {
-      setErrorMsg('Business name must be at least 2 characters.');
-      return;
-    }
-
-    if (contactPersonName.trim().length < 2) {
-      setErrorMsg('Please provide a contact person name (at least 2 characters).');
-      return;
-    }
-
-    if (phone.trim().length < 5) {
-      setErrorMsg('Please enter a valid phone number.');
-      return;
-    }
-
-    if (categoryIds.length === 0) {
-      setErrorMsg('Please select at least one primary industry category.');
-      return;
-    }
-
-    if (!city.trim()) {
-      setErrorMsg('Please select or specify a city.');
-      return;
-    }
-
-    if (!addressLine1.trim()) {
-      setErrorMsg('Please provide your complete street address.');
-      return;
-    }
-
-    if (description.trim().length < 20) {
-      setErrorMsg('Please provide a descriptive overview (minimum 20 characters).');
+    if (Object.keys(errors).length > 0) {
+      setErrorMsg('Please complete all required fields highlighted in red below.');
+      const firstInvalidEl = document.querySelector('[data-invalid="true"]');
+      if (firstInvalidEl) {
+        firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -412,7 +425,7 @@ export default function AddBusinessPage() {
         )}
 
         {/* Form Form Container */}
-        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6 sm:space-y-8">
           <fieldset disabled={isSubmitted || loading} className="space-y-6 sm:space-y-8">
 
             {/* STAGE 1 ROADMAP / POST-APPROVAL NOTICE BANNER */}
@@ -510,23 +523,32 @@ export default function AddBusinessPage() {
               {/* Form Fields */}
               <div className="space-y-5">
                 {/* Row 1: Business Name */}
-                <div>
+                <div data-invalid={isFieldInvalid('name')}>
                   <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                     BUSINESS NAME <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onBlur={() => markTouched('name')}
                     placeholder="e.g. Skyline Logistics & Courier Services"
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    className={`w-full h-12 px-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                      isFieldInvalid('name')
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                        : 'border-slate-200/90 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20'
+                    }`}
                   />
+                  {isFieldInvalid('name') && (
+                    <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 {/* Row 2: Contact Person & Business Email */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-                  <div>
+                  <div data-invalid={isFieldInvalid('contactPersonName')}>
                     <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                       CONTACT PERSON NAME <span className="text-rose-500">*</span>
                     </label>
@@ -536,13 +558,22 @@ export default function AddBusinessPage() {
                       </div>
                       <input
                         type="text"
-                        required
                         value={contactPersonName}
                         onChange={(e) => setContactPersonName(e.target.value)}
+                        onBlur={() => markTouched('contactPersonName')}
                         placeholder="e.g. Awais Ali"
-                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                        className={`w-full h-12 pl-10 pr-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                          isFieldInvalid('contactPersonName')
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                            : 'border-slate-200/90 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20'
+                        }`}
                       />
                     </div>
+                    {isFieldInvalid('contactPersonName') && (
+                      <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                        {errors.contactPersonName}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -571,7 +602,7 @@ export default function AddBusinessPage() {
 
                 {/* Row 3: Phone Number & WhatsApp Number */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-                  <div>
+                  <div data-invalid={isFieldInvalid('phone')}>
                     <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                       PHONE NUMBER <span className="text-rose-500">*</span>
                     </label>
@@ -581,13 +612,22 @@ export default function AddBusinessPage() {
                       </div>
                       <input
                         type="tel"
-                        required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
+                        onBlur={() => markTouched('phone')}
                         placeholder="e.g. +92 300 1234567"
-                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                        className={`w-full h-12 pl-10 pr-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                          isFieldInvalid('phone')
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                            : 'border-slate-200/90 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20'
+                        }`}
                       />
                     </div>
+                    {isFieldInvalid('phone') && (
+                      <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                        {errors.phone}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -661,19 +701,31 @@ export default function AddBusinessPage() {
                     />
                   </div>
 
-                  <div>
+                  <div data-invalid={isFieldInvalid('city')}>
                     <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                       CITY <span className="text-rose-500">*</span>
                     </label>
                     <CitySelect
                       value={city}
-                      onChange={setCity}
+                      onChange={(c) => {
+                        setCity(c);
+                        markTouched('city');
+                      }}
                       countryCode={countryCode}
                       allowCustomInput
                       placeholder="Search or select city..."
                       icon={<Search className="w-4 h-4 text-slate-400 flex-shrink-0" />}
-                      triggerClassName="!h-12 !rounded-xl !border-slate-200/90 !bg-white !text-sm !font-medium !text-slate-800 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20"
+                      triggerClassName={`!h-12 !rounded-xl !bg-white !text-sm !font-medium !text-slate-800 ${
+                        isFieldInvalid('city')
+                          ? '!border-rose-400 focus:!border-rose-500 focus:!ring-2 focus:!ring-rose-500/20'
+                          : '!border-slate-200/90 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20'
+                      }`}
                     />
+                    {isFieldInvalid('city') && (
+                      <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                        {errors.city}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -697,13 +749,16 @@ export default function AddBusinessPage() {
 
                 {/* Row 2: Category & Postal Code */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-                  <div>
+                  <div data-invalid={isFieldInvalid('category')}>
                     <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                       CATEGORY <span className="text-rose-500">*</span>
                     </label>
                     <CustomSelect
                       value={categoryIds[0] || ''}
-                      onChange={(val) => setCategoryIds([val])}
+                      onChange={(val) => {
+                        setCategoryIds(val ? [val] : []);
+                        markTouched('category');
+                      }}
                       options={categories.map((c) => ({
                         value: c._id || c.slug,
                         label: c.name,
@@ -711,8 +766,17 @@ export default function AddBusinessPage() {
                       placeholder="Select a category"
                       searchable
                       searchPlaceholder="Search category..."
-                      triggerClassName="!h-12 !rounded-xl !border-slate-200/90 !bg-white !text-sm !font-medium !text-slate-800 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20"
+                      triggerClassName={`!h-12 !rounded-xl !bg-white !text-sm !font-medium !text-slate-800 ${
+                        isFieldInvalid('category')
+                          ? '!border-rose-400 focus:!border-rose-500 focus:!ring-2 focus:!ring-rose-500/20'
+                          : '!border-slate-200/90 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20'
+                      }`}
                     />
+                    {isFieldInvalid('category') && (
+                      <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                        {errors.category}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -737,23 +801,32 @@ export default function AddBusinessPage() {
                 </div>
 
                 {/* Row 3: Complete Address */}
-                <div>
+                <div data-invalid={isFieldInvalid('addressLine1')}>
                   <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                     COMPLETE ADDRESS <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      required
                       value={addressLine1}
                       onChange={(e) => setAddressLine1(e.target.value)}
+                      onBlur={() => markTouched('addressLine1')}
                       placeholder="e.g. Office # 402, 4th Floor, Arfa Software Technology Park, Ferozepur Road"
-                      className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                      className={`w-full h-12 pl-4 pr-10 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                        isFieldInvalid('addressLine1')
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                          : 'border-slate-200/90 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20'
+                      }`}
                     />
                     <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
                       <MapPin className="w-4 h-4" />
                     </div>
                   </div>
+                  {isFieldInvalid('addressLine1') && (
+                    <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                      {errors.addressLine1}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -830,26 +903,35 @@ export default function AddBusinessPage() {
                 </div>
 
                 {/* Business Description */}
-                <div>
+                <div data-invalid={isFieldInvalid('description')}>
                   <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
                     BUSINESS DESCRIPTION <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     rows={5}
-                    required
                     value={description}
                     onChange={(e) => {
                       if (e.target.value.length <= 2000) {
                         setDescription(e.target.value);
                       }
                     }}
+                    onBlur={() => markTouched('description')}
                     placeholder="Describe your business services, products, background, and what makes your business unique... (min 20 characters)"
-                    className="w-full p-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all resize-y min-h-[140px]"
+                    className={`w-full p-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all resize-y min-h-[140px] ${
+                      isFieldInvalid('description')
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                        : 'border-slate-200/90 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20'
+                    }`}
                   />
                   <div className="flex items-center justify-between mt-2 text-xs text-slate-400 font-medium">
                     <span>Minimum 20 characters required</span>
                     <span>{description.length}/2000</span>
                   </div>
+                  {isFieldInvalid('description') && (
+                    <p className="text-xs text-rose-500 font-medium mt-1.5 animate-in fade-in-0 duration-150">
+                      {errors.description}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
