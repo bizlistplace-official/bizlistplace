@@ -539,7 +539,7 @@ export default function AddBusinessPage() {
                         required
                         value={contactPersonName}
                         onChange={(e) => setContactPersonName(e.target.value)}
-                        placeholder="e.g. Ahsan Ali"
+                        placeholder="e.g. Awais Ali"
                         className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
                       />
                     </div>
@@ -607,7 +607,7 @@ export default function AddBusinessPage() {
                         type="tel"
                         value={whatsapp}
                         onChange={(e) => setWhatsapp(e.target.value)}
-                        placeholder="e.g. +92 310 6131361"
+                        placeholder="e.g. +92 321 5031143"
                         className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
                       />
                     </div>
