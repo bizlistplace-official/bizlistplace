@@ -445,28 +445,17 @@ export function Navbar() {
                       role="menu"
                       aria-orientation="vertical"
                       aria-labelledby="user-profile-menu-button"
-                      className="absolute right-0 top-full mt-2.5 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-[0_12px_45px_-6px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.06)] border border-slate-150 p-2 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right"
+                      className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-[0_12px_40px_-6px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.06)] border border-slate-200/90 p-2 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 ease-out origin-top-right"
                     >
-                      {/* User Info Header with Circular Avatar */}
-                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 border border-slate-100 mb-1">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1D68F2] to-[#3B7BF6] text-white flex items-center justify-center font-bold text-sm tracking-wider flex-shrink-0 shadow-xs ring-2 ring-white">
-                          {getInitials(user.name, user.email)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-bold text-sm text-slate-900 truncate">
-                              {user.name || 'Account User'}
-                            </p>
-                            {user.role === 'admin' && (
-                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                                Admin
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-400 truncate mt-0.5" title={user.email}>
-                            {user.email}
-                          </p>
-                        </div>
+                      {/* User Info Header: Signed in as */}
+                      <div className="px-3.5 py-2.5 border-b border-slate-100 mb-1">
+                        <p className="text-[11px] font-medium text-slate-400">Signed in as</p>
+                        <p className="font-bold text-sm text-slate-900 truncate mt-0.5">
+                          {user.name || 'Account User'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5" title={user.email}>
+                          {user.email}
+                        </p>
                       </div>
 
                       {/* Menu Links */}
@@ -474,35 +463,29 @@ export function Navbar() {
                         <Link
                           href="/dashboard"
                           onClick={() => setUserMenuOpen(false)}
-                          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
+                          className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-blue-100/70 text-slate-500 group-hover:text-[#1D68F2] flex items-center justify-center transition-colors flex-shrink-0">
-                            <LayoutGrid className="w-4 h-4 stroke-[2]" />
-                          </div>
-                          <span className="flex-1 font-semibold">Dashboard</span>
+                          <LayoutGrid className="w-4 h-4 text-slate-600 group-hover:text-[#1D68F2] stroke-[2] flex-shrink-0" />
+                          <span className="flex-1">My Businesses / Dashboard</span>
                         </Link>
 
                         <Link
-                          href="/dashboard"
+                          href="/add-business"
                           onClick={() => setUserMenuOpen(false)}
-                          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
+                          className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 transition-all duration-150"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-blue-100/70 text-slate-500 group-hover:text-[#1D68F2] flex items-center justify-center transition-colors flex-shrink-0">
-                            <User className="w-4 h-4 stroke-[2]" />
-                          </div>
-                          <span className="flex-1 font-semibold">Profile</span>
+                          <PlusCircle className="w-4 h-4 text-slate-600 group-hover:text-[#1D68F2] stroke-[2] flex-shrink-0" />
+                          <span className="flex-1">Add New Business</span>
                         </Link>
 
                         {user.role === 'admin' && (
                           <Link
                             href="/admin"
                             onClick={() => setUserMenuOpen(false)}
-                            className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/80 transition-all duration-150"
+                            className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/80 transition-all duration-150"
                           >
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-colors flex-shrink-0">
-                              <Shield className="w-4 h-4 stroke-[2]" />
-                            </div>
-                            <span className="flex-1 font-semibold">Admin Panel</span>
+                            <Shield className="w-4 h-4 text-slate-600 group-hover:text-indigo-600 stroke-[2] flex-shrink-0" />
+                            <span className="flex-1">Admin Panel</span>
                           </Link>
                         )}
                       </div>
@@ -518,11 +501,9 @@ export function Navbar() {
                             setUserMenuOpen(false);
                             logout();
                           }}
-                          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 transition-all duration-150 cursor-pointer text-left"
+                          className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 transition-all duration-150 cursor-pointer text-left"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-rose-50 group-hover:bg-rose-100/80 text-rose-500 group-hover:text-rose-600 flex items-center justify-center transition-colors flex-shrink-0">
-                            <LogOut className="w-4 h-4 stroke-[2]" />
-                          </div>
+                          <LogOut className="w-4 h-4 text-rose-500 group-hover:text-rose-600 stroke-[2] flex-shrink-0" />
                           <span className="flex-1">Logout</span>
                         </button>
                       </div>
@@ -753,18 +734,18 @@ export function Navbar() {
                   <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
                     <LayoutGrid className="w-4 h-4" />
                   </div>
-                  <span>Dashboard</span>
+                  <span>My Businesses / Dashboard</span>
                 </Link>
 
                 <Link
-                  href="/dashboard"
+                  href="/add-business"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-[#1D68F2] hover:bg-blue-50/80 rounded-xl transition-all"
                 >
                   <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
-                    <User className="w-4 h-4" />
+                    <PlusCircle className="w-4 h-4" />
                   </div>
-                  <span>Profile</span>
+                  <span>Add New Business</span>
                 </Link>
 
                 {user.role === 'admin' && (
