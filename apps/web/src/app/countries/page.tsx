@@ -62,7 +62,7 @@ export default async function CountriesPage() {
                 Major Business Cities
               </span>
               <div className="flex flex-wrap gap-2">
-                {country.popularCities.map((city) => (
+                {(country.popularCities || []).map((city) => (
                   <Link
                     key={city.slug}
                     href={`/${country.slug}/${city.slug}`}

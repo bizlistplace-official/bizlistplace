@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,6 +37,28 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
       setSelectedCountry(country.code);
     }
   }, [country?.code]);
+
+  // Stable callbacks to prevent re-rendering memoized select dropdowns on keystrokes
+  const handleCountryChange = useCallback((c: string) => {
+    setSelectedCountry(c);
+    setSelectedCity('');
+  }, []);
+
+  const handleCityChange = useCallback((city: string) => {
+    setSelectedCity(city);
+  }, []);
+
+  const handleCategoryChange = useCallback((cat: string) => {
+    setCategory(cat);
+  }, []);
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: '', label: 'All Categories' },
+      ...INITIAL_CATEGORIES.map((c) => ({ value: c.slug, label: c.name })),
+    ],
+    []
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,10 +176,7 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
               id="hero-location-select"
               aria-label="Location Country"
               value={selectedCountry}
-              onChange={(c) => {
-                setSelectedCountry(c);
-                setSelectedCity('');
-              }}
+              onChange={handleCountryChange}
               includeAllOption
               allOptionLabel="All Countries"
               placeholder="All Countries"
@@ -171,7 +190,7 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
               id="hero-city-select"
               aria-label="City or Locality"
               value={selectedCity}
-              onChange={setSelectedCity}
+              onChange={handleCityChange}
               countryCode={selectedCountry}
               includeAllOption
               allOptionLabel="All Cities"
@@ -186,11 +205,8 @@ export function SearchHero({ country }: SearchHeroProps = {}) {
               id="hero-category-select"
               aria-label="Business Category"
               value={category}
-              onChange={setCategory}
-              options={[
-                { value: '', label: 'All Categories' },
-                ...INITIAL_CATEGORIES.map((c) => ({ value: c.slug, label: c.name })),
-              ]}
+              onChange={handleCategoryChange}
+              options={categoryOptions}
               placeholder="All Categories"
               icon={<LayoutGrid className="w-4 h-4 text-slate-400" />}
               variant="hero"

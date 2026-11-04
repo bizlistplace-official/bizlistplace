@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/authContext';
 import { fetchApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { ClaimBusinessModal } from '@/components/business/ClaimBusinessModal';
 import { ShieldCheck, Building2, Search, ArrowRight, AlertCircle } from 'lucide-react';
 import { IBusiness } from '@bizpockethub/shared';
+
+const ClaimBusinessModal = dynamic(
+  () => import('@/components/business/ClaimBusinessModal').then((mod) => mod.ClaimBusinessModal),
+  { ssr: false }
+);
 
 function ClaimBusinessContent() {
   const searchParams = useSearchParams();
@@ -155,7 +160,7 @@ function ClaimBusinessContent() {
         )}
       </div>
 
-      {business && (
+      {business && modalOpen && (
         <ClaimBusinessModal
           business={business}
           isOpen={modalOpen}

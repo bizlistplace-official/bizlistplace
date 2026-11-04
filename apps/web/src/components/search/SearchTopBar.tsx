@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Layers, ChevronDown, Check, X } from 'lucide-react';
 import { ICategory } from '@bizpockethub/shared';
@@ -51,6 +51,15 @@ export function SearchTopBar({
   useEffect(() => {
     setSelectedCategory(initialCategory);
   }, [initialCategory]);
+
+  const handleCountryChange = useCallback((c: string) => {
+    setSelectedCountry(c);
+    setSelectedCity('');
+  }, []);
+
+  const handleCityChange = useCallback((city: string) => {
+    setSelectedCity(city);
+  }, []);
 
   // Dropdown open state for Category
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -141,10 +150,7 @@ export function SearchTopBar({
             id="search-top-country"
             aria-label="Location Country"
             value={selectedCountry}
-            onChange={(c) => {
-              setSelectedCountry(c);
-              setSelectedCity('');
-            }}
+            onChange={handleCountryChange}
             includeAllOption
             allOptionLabel="All Countries"
             placeholder="All Countries"
@@ -159,7 +165,7 @@ export function SearchTopBar({
             id="search-top-city"
             aria-label="City or Locality"
             value={selectedCity}
-            onChange={setSelectedCity}
+            onChange={handleCityChange}
             countryCode={selectedCountry}
             includeAllOption
             allOptionLabel="All Cities"

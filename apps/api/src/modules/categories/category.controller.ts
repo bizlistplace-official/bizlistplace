@@ -10,6 +10,7 @@ const CATEGORY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export class CategoryController {
   static invalidateCache(): void {
     cachedCategoryList = null;
+    SearchService.invalidateCategoryCache();
   }
 
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -25,13 +26,15 @@ export class CategoryController {
         return;
       }
 
-      const categories = await Category.find({ isActive: true }).sort({ name: 1 }).lean();
-
-      // Aggregate business counts for each category
-      const counts = await Business.aggregate([
-        { $match: { listingStatus: 'published' } },
-        { $unwind: '$categoryIds' },
-        { $group: { _id: '$categoryIds', count: { $sum: 1 } } },
+      // Execute category lookup and count aggregation in parallel using Promise.all() with covered project
+      const [categories, counts] = await Promise.all([
+        Category.find({ isActive: true }).sort({ name: 1 }).lean(),
+        Business.aggregate([
+          { $match: { listingStatus: 'published' } },
+          { $project: { categoryIds: 1 } },
+          { $unwind: '$categoryIds' },
+          { $group: { _id: '$categoryIds', count: { $sum: 1 } } },
+        ]),
       ]);
 
       const countMap = new Map<string, number>();
@@ -141,6 +144,69 @@ export class CategoryController {
       res.status(201).json({
         success: true,
         data: category,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, slug, parentId, icon, description, isActive } = req.body;
+
+      const updateData: Record<string, unknown> = {};
+      if (name !== undefined) updateData.name = name;
+      if (slug !== undefined) updateData.slug = slug.toLowerCase();
+      if (parentId !== undefined) updateData.parentId = parentId || null;
+      if (icon !== undefined) updateData.icon = icon;
+      if (description !== undefined) updateData.description = description;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const category = await Category.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+
+      if (!category) {
+        res.status(404).json({
+          success: false,
+          message: 'Category not found.',
+        });
+        return;
+      }
+
+      CategoryController.invalidateCache();
+
+      res.json({
+        success: true,
+        data: category,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const category = await Category.findByIdAndDelete(id);
+
+      if (!category) {
+        res.status(404).json({
+          success: false,
+          message: 'Category not found.',
+        });
+        return;
+      }
+
+      CategoryController.invalidateCache();
+
+      res.json({
+        success: true,
+        message: 'Category deleted successfully.',
       });
     } catch (err) {
       next(err);

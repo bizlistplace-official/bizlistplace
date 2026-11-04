@@ -4,7 +4,19 @@ import { BusinessLocation } from '../modules/businesses/businessLocation.model';
 import { Category } from '../modules/categories/category.model';
 import { ISearchFilters, IPaginatedResult, IBusiness } from '@bizpockethub/shared';
 
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// In-memory cache for category slug -> ObjectId mapping (10-minute TTL)
+const categorySlugCache = new Map<string, { id: Types.ObjectId; timestamp: number }>();
+const CATEGORY_CACHE_TTL = 10 * 60 * 1000;
+
 export class SearchService {
+  static invalidateCategoryCache(): void {
+    categorySlugCache.clear();
+  }
+
   static async search(
     filters: ISearchFilters,
     includeUnpublished = false
@@ -20,29 +32,52 @@ export class SearchService {
       query.listingStatus = 'published';
     }
 
-    // 2. Keyword Search
+    // 2. Keyword Search (Safe regex with ReDoS protection across name, shortDescription, description, serviceAreas)
     if (filters.q && filters.q.trim()) {
       const sanitized = filters.q.trim();
-      // Try text search or regex fallback
+      const escaped = escapeRegex(sanitized);
+
       query.$or = [
-        { name: { $regex: sanitized, $options: 'i' } },
-        { shortDescription: { $regex: sanitized, $options: 'i' } },
-        { description: { $regex: sanitized, $options: 'i' } },
-        { serviceAreas: { $regex: sanitized, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { shortDescription: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
+        { serviceAreas: { $regex: escaped, $options: 'i' } },
       ];
     }
 
-    // 3. Category Filter
+    // 3. Category Filter with in-memory resolution cache
     if (filters.category && filters.category.trim()) {
       const categorySlug = filters.category.trim().toLowerCase();
-      const cat = await Category.findOne({
-        $or: [
-          { slug: categorySlug },
-          ...(Types.ObjectId.isValid(categorySlug) ? [{ _id: categorySlug }] : []),
-        ],
-      });
-      if (cat) {
-        query.categoryIds = cat._id;
+      const now = Date.now();
+      const cached = categorySlugCache.get(categorySlug);
+
+      if (cached && now - cached.timestamp < CATEGORY_CACHE_TTL) {
+        query.categoryIds = cached.id;
+      } else {
+        const cat = await Category.findOne({
+          $or: [
+            { slug: categorySlug },
+            ...(Types.ObjectId.isValid(categorySlug) ? [{ _id: categorySlug }] : []),
+          ],
+        }).select('_id slug').lean();
+
+        if (cat) {
+          categorySlugCache.set(categorySlug, { id: cat._id as Types.ObjectId, timestamp: now });
+          query.categoryIds = cat._id;
+        } else {
+          // Category does not exist, return empty results immediately without querying Business collection
+          return {
+            data: [],
+            pagination: {
+              total: 0,
+              page,
+              limit,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
+          };
+        }
       }
     }
 
@@ -66,28 +101,48 @@ export class SearchService {
       }
 
       if (filters.city) {
-        locQuery.city = { $regex: new RegExp(`^${filters.city.trim()}$`, 'i') };
+        locQuery.city = { $regex: new RegExp(`^${escapeRegex(filters.city.trim())}$`, 'i') };
       }
-
-      const matchingLocations = await BusinessLocation.find(locQuery).select('businessId');
-      const businessIds = matchingLocations.map((l) => l.businessId);
 
       query.$and = query.$and || [];
 
-      if (countryCodes.length > 0 && filters.city) {
-        // Both country and city specified: must match location ID
+      if (filters.city) {
+        // City specified: query BusinessLocation for matching business IDs using distinct index scan
+        const businessIds = await BusinessLocation.distinct('businessId', locQuery);
+
+        // If no locations exist in that city, return early to save unnecessary database round-trips
+        if (businessIds.length === 0) {
+          return {
+            data: [],
+            pagination: {
+              total: 0,
+              page,
+              limit,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
+          };
+        }
+
         query.$and.push({ _id: { $in: businessIds } });
       } else if (countryCodes.length > 0) {
-        // Country specified: match either business countryCode or location in that country
-        query.$and.push({
-          $or: [
-            { countryCode: { $in: countryCodes } },
-            { _id: { $in: businessIds } },
-          ],
+        // Country specified without city: find foreign branch businesses plus direct country matches
+        // Using distinct on businessId avoids omitting valid businesses beyond an arbitrary limit
+        const branchIds = await BusinessLocation.distinct('businessId', {
+          countryCode: { $in: countryCodes },
         });
-      } else {
-        // City only
-        query.$and.push({ _id: { $in: businessIds } });
+
+        if (branchIds.length > 0) {
+          query.$and.push({
+            $or: [
+              { countryCode: { $in: countryCodes } },
+              { _id: { $in: branchIds } },
+            ],
+          });
+        } else {
+          query.$and.push({ countryCode: { $in: countryCodes } });
+        }
       }
     }
 
@@ -111,17 +166,31 @@ export class SearchService {
       sortOptions = { name: 1 };
     }
 
-    const total = await Business.countDocuments(query);
-    const businesses = await Business.find(query)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
-      .populate('categoryIds')
-      .lean();
+    // Execute count and paginated list concurrently using Promise.all() with field projection
+    const [totalCount, businesses] = await Promise.all([
+      Business.countDocuments(query),
+      Business.find(query)
+        .select(
+          '_id name slug shortDescription description categoryIds primaryCategory ratingAverage reviewCount isFeatured verificationStatus listingStatus businessType coverImageUrl logoUrl phone contactEmail website countryCode ownerId createdAt updatedAt publishedAt'
+        )
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .populate('categoryIds', '_id name slug')
+        .lean(),
+    ]);
 
-    // Fetch primary locations for found businesses
+    // On page 1 with results < limit, count is guaranteed to match length
+    const total = (page === 1 && businesses.length < limit && totalCount === 0) ? businesses.length : totalCount;
+
+    // Fetch primary locations for found businesses with field projection
     const bIds = businesses.map((b) => b._id);
-    const locations = await BusinessLocation.find({ businessId: { $in: bIds } }).lean();
+    const locations =
+      bIds.length > 0
+        ? await BusinessLocation.find({ businessId: { $in: bIds } })
+            .select('businessId branchSlug branchName countryCode countryName region city postalCode addressLine1 addressLine2 isPrimary phone email coordinates')
+            .lean()
+        : [];
 
     const formattedData: IBusiness[] = businesses.map((b: any) => {
       const bizLocations = locations.filter(

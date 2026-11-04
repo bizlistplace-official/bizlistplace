@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { IBusiness } from '@bizpockethub/shared';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
-import { ClaimBusinessModal } from './ClaimBusinessModal';
+
+const ClaimBusinessModal = dynamic(
+  () => import('./ClaimBusinessModal').then((mod) => mod.ClaimBusinessModal),
+  { ssr: false }
+);
 
 interface ClaimBusinessButtonProps {
   business: IBusiness;
@@ -62,11 +67,13 @@ export function ClaimBusinessButton({
         </button>
       )}
 
-      <ClaimBusinessModal
-        business={business}
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-      />
+      {isOpen && (
+        <ClaimBusinessModal
+          business={business}
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+        />
+      )}
     </>
   );
 }

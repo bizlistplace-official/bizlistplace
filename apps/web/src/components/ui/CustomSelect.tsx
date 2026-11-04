@@ -36,7 +36,7 @@ export interface CustomSelectProps {
   emptyMessage?: string;
 }
 
-export function CustomSelect({
+function CustomSelectComponent({
   id: explicitId,
   name,
   value,
@@ -437,3 +437,5 @@ export function CustomSelect({
     </div>
   );
 }
+
+export const CustomSelect = React.memo(CustomSelectComponent);

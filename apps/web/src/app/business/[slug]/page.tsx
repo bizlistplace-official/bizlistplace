@@ -1,14 +1,21 @@
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
-import { ReviewSection } from '@/components/business/ReviewSection';
 import { BusinessCard } from '@/components/business/BusinessCard';
 import { BusinessLogo } from '@/components/business/BusinessLogo';
 import { ClaimBusinessButton } from '@/components/business/ClaimBusinessButton';
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/Breadcrumbs';
 import { IBusiness, IBusinessLocation, POPULAR_COUNTRIES } from '@bizpockethub/shared';
+
+const ReviewSection = dynamic(
+  () => import('@/components/business/ReviewSection').then((mod) => mod.ReviewSection),
+  {
+    loading: () => <div className="min-h-[160px] animate-pulse bg-slate-50 rounded-xl" />,
+  }
+);
 import {
   Building2,
   MapPin,

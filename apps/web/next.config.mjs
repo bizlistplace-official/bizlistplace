@@ -28,13 +28,11 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@bizpockethub/shared'],
   },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      // In-memory cache in development eliminates Windows NTFS PackFileCacheStrategy file rename collisions
-      config.cache = {
-        type: 'memory',
-      };
-    }
+  webpack: (config) => {
+    // In-memory cache eliminates Windows NTFS PackFileCacheStrategy file rename collisions and transient EPERM mkdir errors
+    config.cache = {
+      type: 'memory',
+    };
     return config;
   },
   async headers() {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { IUser } from '@bizpockethub/shared';
 import { fetchApi } from './api';
 
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (typeof window !== 'undefined' && !localStorage.getItem('biz_auth_token')) {
       setUser(null);
       setLoading(false);
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Read cached user from localStorage safely in useEffect after initial hydration
@@ -80,9 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch {}
     refreshUser();
-  }, []);
+  }, [refreshUser]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const res = await fetchApi<{ user: IUser; token?: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -101,39 +101,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
     return { success: false, message: res.message || 'Login failed' };
-  };
+  }, []);
 
-  const register = async (
-    name: string,
-    email: string,
-    password: string,
-    role: 'user' | 'business_owner'
-  ) => {
-    const res = await fetchApi<{ user: IUser; token?: string }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password, role }),
-    });
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      role: 'user' | 'business_owner'
+    ) => {
+      const res = await fetchApi<{ user: IUser; token?: string }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, role }),
+      });
 
-    if (res.success && res.data?.user) {
-      setUser(res.data.user);
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('biz_user', JSON.stringify(res.data.user));
-          if (res.data?.token) {
-            localStorage.setItem('biz_auth_token', res.data.token);
-          }
-        } catch {}
+      if (res.success && res.data?.user) {
+        setUser(res.data.user);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('biz_user', JSON.stringify(res.data.user));
+            if (res.data?.token) {
+              localStorage.setItem('biz_auth_token', res.data.token);
+            }
+          } catch {}
+        }
+        return { success: true };
       }
-      return { success: true };
-    }
-    const errorText =
-      res.errors && Array.isArray(res.errors) && res.errors.length > 0
-        ? res.errors.map((e: any) => e.message).join('. ')
-        : res.message || 'Registration failed';
-    return { success: false, message: errorText };
-  };
+      const errorText =
+        res.errors && Array.isArray(res.errors) && res.errors.length > 0
+          ? res.errors.map((e: any) => e.message).join('. ')
+          : res.message || 'Registration failed';
+      return { success: false, message: errorText };
+    },
+    []
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await fetchApi('/auth/logout', { method: 'POST' });
     setUser(null);
     if (typeof window !== 'undefined') {
@@ -142,19 +145,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('biz_auth_token');
       } catch {}
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      refreshUser,
+    }),
+    [user, loading, login, register, logout, refreshUser]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        register,
-        logout,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

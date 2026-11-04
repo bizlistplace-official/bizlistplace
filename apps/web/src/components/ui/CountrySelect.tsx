@@ -4,6 +4,14 @@ import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
 import { MapPin, ChevronDown, Check, Search, X, Globe } from 'lucide-react';
 import { ALL_GLOBAL_COUNTRIES, GlobalCountry } from '@bizpockethub/shared';
 
+// Module-level O(1) indexed maps to avoid repeated O(N) array scans on each render
+const countryCodeMap = new Map<string, GlobalCountry>();
+const countrySlugMap = new Map<string, GlobalCountry>();
+ALL_GLOBAL_COUNTRIES.forEach((c) => {
+  countryCodeMap.set(c.code.toUpperCase(), c);
+  countrySlugMap.set(c.slug.toLowerCase(), c);
+});
+
 export interface CountrySelectProps {
   id?: string;
   name?: string;
@@ -23,7 +31,7 @@ export interface CountrySelectProps {
   'aria-label'?: string;
 }
 
-export function CountrySelect({
+function CountrySelectComponent({
   id: explicitId,
   name,
   value,
@@ -57,16 +65,17 @@ export function CountrySelect({
   // Normalize value for lookup
   const normalizedValue = value ? value.trim().toUpperCase() : '';
 
-  // Currently selected country
+  // Currently selected country via O(1) indexed lookup
   const selectedCountry = useMemo(() => {
     if (!normalizedValue) return null;
-    return ALL_GLOBAL_COUNTRIES.find(
-      (c) => c.code === normalizedValue || c.slug === value.toLowerCase()
-    );
+    return countryCodeMap.get(normalizedValue) || countrySlugMap.get(value.toLowerCase()) || null;
   }, [normalizedValue, value]);
 
-  // Split popular and other countries, then filter by search
+  // Split popular and other countries, then filter by search ONLY when dropdown is open
   const { popularCountries, otherCountries, totalCount } = useMemo(() => {
+    if (!isOpen) {
+      return { popularCountries: [], otherCountries: [], totalCount: 0 };
+    }
     const q = searchQuery.trim().toLowerCase();
 
     const filterFn = (c: GlobalCountry) => {
@@ -86,10 +95,11 @@ export function CountrySelect({
       otherCountries: others,
       totalCount: popular.length + others.length,
     };
-  }, [searchQuery]);
+  }, [isOpen, searchQuery]);
 
-  // Flattened list of active options for arrow key navigation
+  // Flattened list of active options for arrow key navigation ONLY when dropdown is open
   const flatOptions = useMemo(() => {
+    if (!isOpen) return [];
     const list: { code: string; label: string; flag?: string }[] = [];
     if (includeAllOption && (!searchQuery || allOptionLabel.toLowerCase().includes(searchQuery.toLowerCase()))) {
       list.push({ code: '', label: allOptionLabel, flag: '🌐' });
@@ -97,7 +107,7 @@ export function CountrySelect({
     popularCountries.forEach((c) => list.push({ code: c.code, label: c.name, flag: c.flag }));
     otherCountries.forEach((c) => list.push({ code: c.code, label: c.name, flag: c.flag }));
     return list;
-  }, [includeAllOption, searchQuery, allOptionLabel, popularCountries, otherCountries]);
+  }, [isOpen, includeAllOption, searchQuery, allOptionLabel, popularCountries, otherCountries]);
 
   // Adjust positioning before opening: check viewport bounds without forced reflow
   useEffect(() => {
@@ -510,3 +520,5 @@ export function CountrySelect({
     </div>
   );
 }
+
+export const CountrySelect = React.memo(CountrySelectComponent);

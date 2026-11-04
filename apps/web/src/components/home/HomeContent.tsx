@@ -103,30 +103,33 @@ async function LiveStatsNumber({ countryCode }: { countryCode?: string }) {
 
 async function FeaturedBusinessesSection({ country }: { country?: CountryConfig }) {
   if (country) {
-    const [countryFeatured, countryAll] = await Promise.all([
-      fetchApi<IBusiness[]>(`/businesses/featured?country=${encodeURIComponent(country.code)}`),
-      fetchApi<{ total: number; data?: IBusiness[] }>(
-        `/businesses?country=${encodeURIComponent(country.code)}&limit=36`
-      ),
-    ]);
+    const featuredUrl = `/businesses/featured?country=${encodeURIComponent(country.code)}`;
+    const countryFeatured = await fetchApi<IBusiness[]>(featuredUrl);
 
-    const businesses: IBusiness[] =
-      countryFeatured.data && countryFeatured.data.length > 0
-        ? countryFeatured.data
-        : (countryAll as any)?.data || [];
+    // If featured listings exist for this country, use them immediately without querying all businesses
+    if (countryFeatured.data && countryFeatured.data.length > 0) {
+      return <FeaturedBusinessesSlider initialBusinesses={countryFeatured.data} country={country} />;
+    }
 
-    return <FeaturedBusinessesSlider initialBusinesses={businesses} country={country} />;
+    // Fallback: only fetch standard listings if no featured businesses exist for this country
+    const countryAll = await fetchApi<{ total: number; data?: IBusiness[] }>(
+      `/businesses?country=${encodeURIComponent(country.code)}&limit=36`
+    );
+    const fallbackBusinesses: IBusiness[] = (countryAll as any)?.data || [];
+
+    return <FeaturedBusinessesSlider initialBusinesses={fallbackBusinesses} country={country} />;
   }
 
-  const [featuredRes, businessesRes] = await Promise.all([
-    fetchApi<IBusiness[]>('/businesses/featured'),
-    fetchApi<{ total: number; data?: IBusiness[] }>('/businesses?limit=36'),
-  ]);
+  const featuredRes = await fetchApi<IBusiness[]>('/businesses/featured');
 
-  const allListingBusinesses: IBusiness[] =
-    featuredRes.data && featuredRes.data.length > 0
-      ? featuredRes.data
-      : (businessesRes as any)?.data || [];
+  // If featured listings exist globally, use them immediately without querying all businesses
+  if (featuredRes.data && featuredRes.data.length > 0) {
+    return <FeaturedBusinessesSlider initialBusinesses={featuredRes.data} />;
+  }
+
+  // Fallback: only fetch standard listings if no featured businesses exist globally
+  const businessesRes = await fetchApi<{ total: number; data?: IBusiness[] }>('/businesses?limit=36');
+  const allListingBusinesses: IBusiness[] = (businessesRes as any)?.data || [];
 
   return <FeaturedBusinessesSlider initialBusinesses={allListingBusinesses} />;
 }

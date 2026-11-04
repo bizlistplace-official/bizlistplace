@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -28,6 +29,13 @@ export const app = express();
 app.use(
   helmet({
     contentSecurityPolicy: false, // Managed by Next.js on the frontend
+  })
+);
+
+// Response compression (gzip/deflate for JSON and text payloads > 1 KB)
+app.use(
+  compression({
+    threshold: 1024,
   })
 );
 

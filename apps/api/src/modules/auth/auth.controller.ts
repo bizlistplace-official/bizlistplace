@@ -137,7 +137,9 @@ export class AuthController {
         return;
       }
 
-      const user = await User.findOne({ email }).select('+passwordHash');
+      const user = await User.findOne({ email }).select(
+        '_id name email role accountStatus emailVerifiedAt createdAt +passwordHash'
+      );
       if (!user) {
         res.status(401).json({
           success: false,
@@ -166,7 +168,10 @@ export class AuthController {
       const token = generateToken(user._id.toString(), user.role);
       setAuthCookie(res, token);
 
-      await AuditService.log('user_login', 'user', user._id.toString(), {}, user._id, req.ip);
+      // Log login event asynchronously to prevent blocking the authentication response
+      AuditService.log('user_login', 'user', user._id.toString(), {}, user._id, req.ip).catch(
+        (err) => console.error('[AUDIT LOG FAILED]:', err?.message || err)
+      );
 
       res.json({
         success: true,

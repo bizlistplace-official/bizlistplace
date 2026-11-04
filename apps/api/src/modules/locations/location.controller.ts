@@ -95,6 +95,11 @@ export class LocationController {
     }
   }
 
+  static invalidateCache(): void {
+    LocationController.countriesCache = null;
+    LocationController.citiesCache.clear();
+  }
+
   static async listCities(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
@@ -103,58 +108,85 @@ export class LocationController {
       const searchQuery = ((req.query.search || req.query.q) as string)?.trim().toLowerCase();
       const limitParam = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const candidateCities: { name: string; slug: string; countryCode: string; count: number }[] = [];
-      const seen = new Set<string>();
+      const now = Date.now();
+      const countryKey =
+        countryQuery && countryQuery !== 'ALL'
+          ? countryQuery === 'UK'
+            ? 'GB'
+            : countryQuery === 'USA'
+            ? 'US'
+            : countryQuery
+          : '__DEFAULT_TOP_CITIES__';
 
-      if (countryQuery && countryQuery !== 'ALL') {
-        const normalizedCode = countryQuery === 'UK' ? 'GB' : countryQuery === 'USA' ? 'US' : countryQuery;
-        const cscCities = LocationController.getCountryAllCities(normalizedCode);
-        for (const city of cscCities) {
-          const key = city.name.toLowerCase();
-          if (!seen.has(key)) {
-            seen.add(key);
-            candidateCities.push({
-              name: city.name,
-              slug: city.slug,
-              countryCode: normalizedCode,
-              count: 0,
-            });
-          }
-        }
+      let candidateCities: { name: string; slug: string; countryCode: string; count: number }[];
 
-        // Query database for matching business counts
-        try {
-          const cityStats = await BusinessLocation.aggregate([
-            { $match: { countryCode: normalizedCode } },
-            { $group: { _id: '$city', count: { $sum: 1 } } },
-          ]);
-          const countMap = new Map<string, number>();
-          cityStats.forEach((c) => countMap.set(c._id.toLowerCase(), c.count));
-
-          for (const item of candidateCities) {
-            item.count = countMap.get(item.name.toLowerCase()) || 0;
-          }
-        } catch {
-          // If offline, count stays 0
-        }
+      // Check if processed cities list with counts is already cached for this country
+      const cached = LocationController.citiesCache.get(countryKey);
+      if (cached && now - cached.timestamp < LocationController.CACHE_TTL) {
+        candidateCities = cached.data;
       } else {
-        // Return default major cities across top directories
-        const defaultCodes = ['PK', 'US', 'GB'];
-        for (const code of defaultCodes) {
-          const cscCities = LocationController.getCountryAllCities(code).slice(0, 50);
+        const builtCities: { name: string; slug: string; countryCode: string; count: number }[] = [];
+        const seen = new Set<string>();
+
+        if (countryKey !== '__DEFAULT_TOP_CITIES__') {
+          const normalizedCode = countryKey;
+          const cscCities = LocationController.getCountryAllCities(normalizedCode);
           for (const city of cscCities) {
             const key = city.name.toLowerCase();
             if (!seen.has(key)) {
               seen.add(key);
-              candidateCities.push({
+              builtCities.push({
                 name: city.name,
                 slug: city.slug,
-                countryCode: code,
+                countryCode: normalizedCode,
                 count: 0,
               });
             }
           }
+
+          // Query database for matching business counts
+          try {
+            const cityStats = await BusinessLocation.aggregate([
+              { $match: { countryCode: normalizedCode } },
+              { $group: { _id: '$city', count: { $sum: 1 } } },
+            ]);
+            const countMap = new Map<string, number>();
+            cityStats.forEach((c) => countMap.set(c._id.toLowerCase(), c.count));
+
+            for (const item of builtCities) {
+              item.count = countMap.get(item.name.toLowerCase()) || 0;
+            }
+          } catch {
+            // If database offline, count stays 0
+          }
+        } else {
+          // Return default major cities across top directories
+          const defaultCodes = ['PK', 'US', 'GB'];
+          for (const code of defaultCodes) {
+            const cscCities = LocationController.getCountryAllCities(code).slice(0, 50);
+            for (const city of cscCities) {
+              const key = city.name.toLowerCase();
+              if (!seen.has(key)) {
+                seen.add(key);
+                builtCities.push({
+                  name: city.name,
+                  slug: city.slug,
+                  countryCode: code,
+                  count: 0,
+                });
+              }
+            }
+          }
         }
+
+        builtCities.sort((a, b) => a.name.localeCompare(b.name));
+        candidateCities = builtCities;
+
+        // Store in memory cache with 5-minute TTL
+        LocationController.citiesCache.set(countryKey, {
+          data: candidateCities,
+          timestamp: now,
+        });
       }
 
       let filtered = candidateCities;
@@ -166,7 +198,6 @@ export class LocationController {
         );
       }
 
-      filtered.sort((a, b) => a.name.localeCompare(b.name));
       const result = limitParam && limitParam > 0 ? filtered.slice(0, limitParam) : filtered;
 
       res.json({

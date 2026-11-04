@@ -36,7 +36,7 @@ export interface CitySelectProps {
 // In-memory frontend cache for loaded country cities
 const cityCache = new Map<string, CityItem[]>();
 
-export function CitySelect({
+function CitySelectComponent({
   id: explicitId,
   name,
   value,
@@ -125,8 +125,9 @@ export function CitySelect({
 
   const MAX_DISPLAY_CITIES = 150;
 
-  // Filter cities based on search
+  // Filter cities based on search ONLY when dropdown is open
   const filteredCities = useMemo(() => {
+    if (!isOpen || !cities.length) return [];
     if (!searchQuery.trim()) return cities;
     const q = searchQuery.toLowerCase().trim();
     return cities.filter(
@@ -135,15 +136,17 @@ export function CitySelect({
         c.slug.includes(q) ||
         (c.stateCode && c.stateCode.toLowerCase().includes(q))
     );
-  }, [cities, searchQuery]);
+  }, [isOpen, cities, searchQuery]);
 
   // Capped visible cities for ultra-fast rendering without UI lockup
   const visibleCities = useMemo(() => {
+    if (!isOpen) return [];
     return filteredCities.slice(0, MAX_DISPLAY_CITIES);
-  }, [filteredCities]);
+  }, [isOpen, filteredCities]);
 
-  // Flattened options for navigation
+  // Flattened options for navigation ONLY when dropdown is open
   const flatOptions = useMemo(() => {
+    if (!isOpen) return [];
     const list: { name: string; isAll?: boolean; isCustom?: boolean }[] = [];
     if (includeAllOption && (!searchQuery || allOptionLabel.toLowerCase().includes(searchQuery.toLowerCase()))) {
       list.push({ name: '', isAll: true });
@@ -153,7 +156,7 @@ export function CitySelect({
       list.unshift({ name: searchQuery.trim(), isCustom: true });
     }
     return list;
-  }, [includeAllOption, allOptionLabel, searchQuery, visibleCities, allowCustomInput]);
+  }, [isOpen, includeAllOption, allOptionLabel, searchQuery, visibleCities, allowCustomInput]);
 
   // Viewport bounds check without forced reflow
   useEffect(() => {
@@ -559,3 +562,5 @@ export function CitySelect({
     </div>
   );
 }
+
+export const CitySelect = React.memo(CitySelectComponent);

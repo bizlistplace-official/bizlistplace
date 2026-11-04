@@ -9,6 +9,7 @@ import { AuditLog } from './auditLog.model';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { AuditService } from '../../services/audit.service';
 import { EmailService } from '../../services/email.service';
+import { CategoryController } from '../categories/category.controller';
 import { config } from '../../config';
 
 export class AdminController {
@@ -117,6 +118,8 @@ export class AdminController {
       business.rejectionReason = '';
       await business.save();
 
+      CategoryController.invalidateCache();
+
       await AuditService.log('business_approved', 'business', id, {}, admin._id, req.ip);
 
       if (business.ownerId && (business.ownerId as any).email) {
@@ -153,6 +156,8 @@ export class AdminController {
       business.rejectionReason = reason || 'Does not meet directory listing guidelines.';
       await business.save();
 
+      CategoryController.invalidateCache();
+
       await AuditService.log('business_rejected', 'business', id, { reason }, admin._id, req.ip);
 
       const recipientEmail = (business.ownerId as any)?.email || business.contactEmail;
@@ -185,6 +190,8 @@ export class AdminController {
 
       business.listingStatus = 'suspended';
       await business.save();
+
+      CategoryController.invalidateCache();
 
       await AuditService.log('business_suspended', 'business', id, {}, admin._id, req.ip);
 

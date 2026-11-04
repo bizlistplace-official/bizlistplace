@@ -79,7 +79,7 @@ interface FeaturedBusinessesSliderProps {
   country?: CountryConfig;
 }
 
-export function FeaturedBusinessesSlider({
+function FeaturedBusinessesSliderComponent({
   initialBusinesses = [],
   country,
 }: FeaturedBusinessesSliderProps) {
@@ -440,6 +440,8 @@ export function FeaturedBusinessesSlider({
     </section>
   );
 }
+
+export const FeaturedBusinessesSlider = React.memo(FeaturedBusinessesSliderComponent);
 
 export function FeaturedBusinessesSkeleton() {
   return (

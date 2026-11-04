@@ -20,4 +20,25 @@ router.post(
   CategoryController.create
 );
 
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole(['admin']),
+  CategoryController.update
+);
+
+router.patch(
+  '/:id',
+  requireAuth,
+  requireRole(['admin']),
+  CategoryController.update
+);
+
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole(['admin']),
+  CategoryController.delete
+);
+
 export default router;

@@ -4,6 +4,7 @@ import { Business } from './business.model';
 import { BusinessLocation } from './businessLocation.model';
 import { Review } from '../reviews/review.model';
 import { Category } from '../categories/category.model';
+import { CategoryController } from '../categories/category.controller';
 import { SearchService } from '../../services/search.service';
 import { AuditService } from '../../services/audit.service';
 import { EmailService } from '../../services/email.service';
@@ -63,22 +64,34 @@ export class BusinessController {
 
         const matchingLocs = await BusinessLocation.find({
           countryCode: { $in: countryCodes },
-        }).select('businessId');
+        }).select('businessId').lean();
         const locBizIds = matchingLocs.map((l) => l.businessId);
 
-        query.$or = [
-          { countryCode: { $in: countryCodes } },
-          { _id: { $in: locBizIds } },
-        ];
+        if (locBizIds.length > 0) {
+          query.$or = [
+            { countryCode: { $in: countryCodes } },
+            { _id: { $in: locBizIds } },
+          ];
+        } else {
+          query.countryCode = { $in: countryCodes };
+        }
       }
 
       const featured = await Business.find(query)
+        .select(
+          '_id name slug shortDescription description categoryIds primaryCategory ratingAverage reviewCount isFeatured verificationStatus listingStatus businessType coverImageUrl logoUrl phone contactEmail website countryCode ownerId createdAt updatedAt publishedAt'
+        )
         .limit(36)
         .populate('categoryIds')
         .lean();
 
       const bIds = featured.map((b) => b._id);
-      const locations = await BusinessLocation.find({ businessId: { $in: bIds } }).lean();
+      const locations =
+        bIds.length > 0
+          ? await BusinessLocation.find({ businessId: { $in: bIds } })
+              .select('businessId branchSlug branchName countryCode countryName region city postalCode addressLine1 addressLine2 isPrimary phone email coordinates')
+              .lean()
+          : [];
 
       const enriched = featured.map((b) => {
         const bLocs = locations.filter((l) => l.businessId.toString() === b._id.toString());
@@ -122,23 +135,35 @@ export class BusinessController {
 
         const matchingLocs = await BusinessLocation.find({
           countryCode: { $in: countryCodes },
-        }).select('businessId');
+        }).select('businessId').lean();
         const locBizIds = matchingLocs.map((l) => l.businessId);
 
-        query.$or = [
-          { countryCode: { $in: countryCodes } },
-          { _id: { $in: locBizIds } },
-        ];
+        if (locBizIds.length > 0) {
+          query.$or = [
+            { countryCode: { $in: countryCodes } },
+            { _id: { $in: locBizIds } },
+          ];
+        } else {
+          query.countryCode = { $in: countryCodes };
+        }
       }
 
       const recent = await Business.find(query)
+        .select(
+          '_id name slug shortDescription description categoryIds primaryCategory ratingAverage reviewCount isFeatured verificationStatus listingStatus businessType coverImageUrl logoUrl phone contactEmail website countryCode ownerId createdAt updatedAt publishedAt'
+        )
         .sort({ publishedAt: -1, createdAt: -1 })
         .limit(12)
         .populate('categoryIds')
         .lean();
 
       const bIds = recent.map((b) => b._id);
-      const locations = await BusinessLocation.find({ businessId: { $in: bIds } }).lean();
+      const locations =
+        bIds.length > 0
+          ? await BusinessLocation.find({ businessId: { $in: bIds } })
+              .select('businessId branchSlug branchName countryCode countryName region city postalCode addressLine1 addressLine2 isPrimary phone email coordinates')
+              .lean()
+          : [];
 
       const enriched = recent.map((b) => {
         const bLocs = locations.filter((l) => l.businessId.toString() === b._id.toString());
@@ -187,28 +212,33 @@ export class BusinessController {
         return;
       }
 
-      const locations = await BusinessLocation.find({ businessId: business._id }).lean();
-      const reviews = await Review.find({
-        businessId: business._id,
-        moderationStatus: 'approved',
-      })
-        .populate('userId', 'name')
-        .sort({ createdAt: -1 })
-        .lean();
-
-      // Related businesses in same category
+      // Execute independent queries in parallel using Promise.all()
       const firstCatId = business.categoryIds[0] ? (business.categoryIds[0] as any)._id : null;
-      let related: any[] = [];
-      if (firstCatId) {
-        related = await Business.find({
-          _id: { $ne: business._id },
-          categoryIds: firstCatId,
-          listingStatus: 'published',
+      const relatedQuery = firstCatId
+        ? Business.find({
+            _id: { $ne: business._id },
+            categoryIds: firstCatId,
+            listingStatus: 'published',
+          })
+            .select(
+              '_id name slug shortDescription description categoryIds primaryCategory ratingAverage reviewCount isFeatured verificationStatus listingStatus businessType coverImageUrl logoUrl countryCode primaryLocation'
+            )
+            .limit(3)
+            .populate('categoryIds')
+            .lean()
+        : Promise.resolve([]);
+
+      const [locations, reviews, related] = await Promise.all([
+        BusinessLocation.find({ businessId: business._id }).lean(),
+        Review.find({
+          businessId: business._id,
+          moderationStatus: 'approved',
         })
-          .limit(3)
-          .populate('categoryIds')
-          .lean();
-      }
+          .populate('userId', 'name')
+          .sort({ createdAt: -1 })
+          .lean(),
+        relatedQuery,
+      ]);
 
       const primaryLocation = locations.find((l) => l.isPrimary) || locations[0] || null;
 
@@ -440,6 +470,8 @@ export class BusinessController {
       await Business.findByIdAndDelete(id);
       await BusinessLocation.deleteMany({ businessId: id });
       await Review.deleteMany({ businessId: id });
+
+      CategoryController.invalidateCache();
 
       await AuditService.log('business_deleted', 'business', id, {}, user._id, req.ip);
 

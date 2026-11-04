@@ -101,7 +101,7 @@ export default async function CountryDetailPage({ params, searchParams }: Countr
             Metropolitan Cities:
           </span>
           <div className="flex flex-wrap gap-2">
-            {country.popularCities.map((city) => (
+            {(country.popularCities || []).map((city) => (
               <Link
                 key={city.slug}
                 href={`/${country.slug}/${city.slug}`}
