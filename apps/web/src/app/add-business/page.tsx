@@ -19,14 +19,60 @@ import {
   Globe,
   Phone,
   Mail,
-  Sparkles,
-  Star,
+  User,
   Upload,
-  MessageCircle,
-  ShieldCheck,
   Clock,
-  Wrench,
+  Search,
+  Share2,
+  ImageIcon,
 } from 'lucide-react';
+
+function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+    </svg>
+  );
+}
+
+type DayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+interface DaySchedule {
+  isOpen: boolean;
+  from: string;
+  to: string;
+}
+
+const DAYS: { key: DayKey; label: string }[] = [
+  { key: 'monday', label: 'Monday' },
+  { key: 'tuesday', label: 'Tuesday' },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday', label: 'Thursday' },
+  { key: 'friday', label: 'Friday' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
+];
+
+const TIME_OPTIONS = [
+  '12:00 AM', '12:30 AM', '01:00 AM', '01:30 AM', '02:00 AM', '02:30 AM',
+  '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM',
+  '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM',
+  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
+  '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
+  '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM', '08:30 PM',
+  '09:00 PM', '09:30 PM', '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM',
+];
+
+const DEFAULT_SCHEDULE: Record<DayKey, DaySchedule> = {
+  monday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  tuesday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  wednesday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  thursday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  friday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  saturday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+  sunday: { isOpen: false, from: '09:00 AM', to: '06:00 PM' },
+};
 
 export default function AddBusinessPage() {
   const router = useRouter();
@@ -40,29 +86,35 @@ export default function AddBusinessPage() {
     }
   }, [user, authLoading, router]);
 
-  // Form State
+  // Section 1: Business Identity State
   const [name, setName] = useState('');
-  const [categoryIds, setCategoryIds] = useState<string[]>([]);
-  const [businessType, setBusinessType] = useState<'physical' | 'service_area' | 'online_only'>('physical');
-  const [shortDescription, setShortDescription] = useState('');
-  const [description, setDescription] = useState('');
-  const [website, setWebsite] = useState('');
-  const [facebookUrl, setFacebookUrl] = useState('');
+  const [contactPersonName, setContactPersonName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
 
-  // Primary Location State
-  const [branchName, setBranchName] = useState('Headquarters');
+  // Section 2: Location & Category State
   const [countryCode, setCountryCode] = useState('PK');
-  const [region, setRegion] = useState('');
   const [city, setCity] = useState('');
+  const [neighbourhood, setNeighbourhood] = useState('');
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [postalCode, setPostalCode] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
 
-  // Logo Preview State
+  // Section 3: Content & Media State
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
 
+  // Section 4: Weekly Opening Hours State
+  const [schedule, setSchedule] = useState<Record<DayKey, DaySchedule>>(DEFAULT_SCHEDULE);
+
+  // Section 5: Online Links State
+  const [website, setWebsite] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [googleBusinessUrl, setGoogleBusinessUrl] = useState('');
+
+  // Submission State
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -81,29 +133,83 @@ export default function AddBusinessPage() {
     }
   }, [user, contactEmail]);
 
-  // Dynamic Form Completion Calculation (matching bizbranches.pk)
+  // Dynamic Form Completion Calculation
   const completionPercentage = useMemo(() => {
     let score = 0;
-    if (name.trim().length >= 2) score += 20;
-    if (categoryIds.length > 0) score += 15;
-    if (description.trim().length >= 20) score += 20;
-    if (city.trim().length > 0) score += 15;
-    if (addressLine1.trim().length > 0) score += 10;
+    if (name.trim().length >= 2) score += 15;
+    if (contactPersonName.trim().length >= 2) score += 10;
     if (phone.trim().length >= 7) score += 10;
-    if (contactEmail.trim().length > 0) score += 5;
-    if (website.trim().length > 0 || facebookUrl.trim().length > 0) score += 5;
+    if (city.trim().length > 0) score += 15;
+    if (categoryIds.length > 0) score += 15;
+    if (addressLine1.trim().length > 0) score += 10;
+    if (logoPreview) score += 5;
+    if (description.trim().length >= 20) score += 15;
+    if (website.trim().length > 0 || facebookUrl.trim().length > 0 || youtubeUrl.trim().length > 0 || googleBusinessUrl.trim().length > 0) score += 5;
     return Math.min(score, 100);
-  }, [name, categoryIds, description, city, addressLine1, phone, contactEmail, website, facebookUrl]);
+  }, [name, contactPersonName, phone, city, categoryIds, addressLine1, logoPreview, description, website, facebookUrl, youtubeUrl, googleBusinessUrl]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMsg('Logo file exceeds 5MB limit. Please upload a smaller image.');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
+        setErrorMsg('');
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Quick Action: Standard Hours (Mon-Sat 9AM-6PM, Sun Closed)
+  const handleSetStandardHours = () => {
+    setSchedule({
+      monday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      tuesday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      wednesday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      thursday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      friday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      saturday: { isOpen: true, from: '09:00 AM', to: '06:00 PM' },
+      sunday: { isOpen: false, from: '09:00 AM', to: '06:00 PM' },
+    });
+  };
+
+  // Quick Action: 24/7 Open
+  const handleSet247Hours = () => {
+    setSchedule({
+      monday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      tuesday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      wednesday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      thursday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      friday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      saturday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+      sunday: { isOpen: true, from: '12:00 AM', to: '11:59 PM' },
+    });
+  };
+
+  // Toggle Day Open/Closed
+  const toggleDayStatus = (dayKey: DayKey) => {
+    setSchedule((prev) => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        isOpen: !prev[dayKey].isOpen,
+      },
+    }));
+  };
+
+  // Update Day Time
+  const updateDayTime = (dayKey: DayKey, field: 'from' | 'to', val: string) => {
+    setSchedule((prev) => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        [field]: val,
+      },
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,8 +228,28 @@ export default function AddBusinessPage() {
       return;
     }
 
+    if (contactPersonName.trim().length < 2) {
+      setErrorMsg('Please provide a contact person name (at least 2 characters).');
+      return;
+    }
+
+    if (phone.trim().length < 5) {
+      setErrorMsg('Please enter a valid phone number.');
+      return;
+    }
+
     if (categoryIds.length === 0) {
       setErrorMsg('Please select at least one primary industry category.');
+      return;
+    }
+
+    if (!city.trim()) {
+      setErrorMsg('Please select or specify a city.');
+      return;
+    }
+
+    if (!addressLine1.trim()) {
+      setErrorMsg('Please provide your complete street address.');
       return;
     }
 
@@ -132,34 +258,42 @@ export default function AddBusinessPage() {
       return;
     }
 
-    if (businessType === 'physical' && (!addressLine1 || !city)) {
-      setErrorMsg('Physical businesses require a valid street address and city.');
-      return;
-    }
-
     setLoading(true);
 
+    const formattedOpeningHours: Record<string, string> = {};
+    for (const [day, val] of Object.entries(schedule)) {
+      formattedOpeningHours[day] = val.isOpen ? `${val.from} - ${val.to}` : 'Closed';
+    }
+
     const payload = {
-      name,
-      description,
-      shortDescription: shortDescription || description.slice(0, 160),
-      website: website || undefined,
-      contactEmail: contactEmail || user.email,
-      phone: phone || undefined,
+      name: name.trim(),
+      description: description.trim(),
+      shortDescription: description.trim().slice(0, 160),
+      website: website.trim() || undefined,
+      contactEmail: contactEmail.trim() || user.email,
+      phone: phone.trim() || undefined,
+      logoUrl: logoPreview || undefined,
       categoryIds,
-      businessType,
+      businessType: 'physical',
+      countryCode: (countryCode || 'PK').toUpperCase(),
+      serviceAreas: neighbourhood.trim() ? [neighbourhood.trim()] : [],
       primaryLocation: {
-        branchName: branchName || 'Headquarters',
-        countryCode: countryCode || 'PK',
-        region: region || city,
-        city: city || 'Local Area',
-        postalCode: postalCode || undefined,
-        addressLine1: addressLine1 || 'Online / Remote Operations',
-        phone: phone || undefined,
+        branchName: 'Headquarters',
+        countryCode: (countryCode || 'PK').toUpperCase(),
+        region: neighbourhood.trim() || city.trim() || 'Local Area',
+        city: city.trim() || 'Local Area',
+        postalCode: postalCode.trim() || undefined,
+        addressLine1: addressLine1.trim(),
+        addressLine2: neighbourhood.trim() || undefined,
+        phone: phone.trim() || undefined,
+        email: contactEmail.trim() || user.email,
+        openingHours: formattedOpeningHours,
         isPrimary: true,
       },
       socialLinks: {
-        facebook: facebookUrl || undefined,
+        facebook: facebookUrl.trim() || undefined,
+        youtube: youtubeUrl.trim() || undefined,
+        google: googleBusinessUrl.trim() || undefined,
       },
     };
 
@@ -176,7 +310,7 @@ export default function AddBusinessPage() {
       if (res.success && (biz || res.data)) {
         setIsSubmitted(true);
         setErrorMsg('');
-        setSuccessMsg('Your business has been submitted successfully for review.');
+        setSuccessMsg('Your business has been submitted successfully for approval.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         // Redirect user to their dashboard after confirmation
@@ -208,90 +342,40 @@ export default function AddBusinessPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 py-10 px-4 sm:px-6">
-      <div className="container mx-auto max-w-5xl space-y-8">
+    <main className="min-h-screen bg-[#F8FAFC] py-8 sm:py-12 px-4 sm:px-6">
+      <div className="container mx-auto max-w-4xl space-y-6 sm:space-y-8">
         <Breadcrumbs items={[{ label: 'Add Business' }]} />
 
         {/* Page Title & Subtitle */}
-        <div className="text-center mb-8 space-y-2">
+        <div className="text-center mb-6 space-y-2">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
             Add Your Business
           </h1>
           <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto">
             Pakistan &amp; Global business listing directory. Get discovered by customers in minutes.
           </p>
-          <div className="pt-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#1D68F2] border border-blue-200">
-              <MessageCircle className="w-3.5 h-3.5" />
-              Need quick assistance? Reach our team on WhatsApp or email
-            </span>
-          </div>
         </div>
 
         {/* Form Completion Progress Card */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/80">
+          <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Form Completion</h2>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Form Completion</h2>
+              <p className="text-xs text-slate-500">
                 Fill in all required fields to complete your listing
               </p>
             </div>
-            <div className="text-left sm:text-right">
-              <span className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-[#1D68F2] via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <div className="text-right">
+              <span className="text-2xl sm:text-3xl font-black text-[#1D68F2]">
                 {completionPercentage}%
               </span>
-              <div className="text-xs text-slate-400 font-medium">Complete</div>
             </div>
           </div>
-          <div className="relative w-full bg-slate-100 rounded-full h-3.5 overflow-hidden shadow-inner">
+          <div className="relative w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
             <div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#1D68F2] via-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out shadow-sm"
+              className="absolute top-0 left-0 h-full bg-[#1D68F2] rounded-full transition-all duration-500 ease-out"
               style={{ width: `${completionPercentage}%` }}
             />
-          </div>
-        </div>
-
-        {/* POST-APPROVAL FEATURES ROADMAP NOTICE BANNER (Stage 1 of 2) */}
-        <div className="rounded-2xl sm:rounded-3xl shadow-xl border border-blue-500/20 overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white p-6 sm:p-7 relative">
-          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-[#1D68F2]/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-start gap-4 relative z-10">
-            <div className="w-11 h-11 rounded-2xl bg-[#1D68F2]/20 border border-blue-400/30 flex items-center justify-center shrink-0 text-blue-400 shadow-sm mt-0.5">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[11px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 bg-blue-400/20 text-blue-300 rounded-md border border-blue-400/30">
-                  Quick Registration • Stage 1 of 2
-                </span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-extrabold text-white leading-snug">
-                Submit your basic listing details now — enhance your landing page after approval!
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                To make your registration quick, submit your primary contact info below. Once your listing is approved by our team, you can log in to your owner dashboard to unlock these rich features:
-              </p>
-            </div>
-          </div>
-
-          {/* Post-Approval Features Badges Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-5 pt-4 border-t border-white/10 relative z-10 text-xs font-bold text-slate-200">
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="text-base">👤</span>
-              <span>Owner Profile Card (Photo, Name &amp; Title)</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="text-base">⏰</span>
-              <span>Opening Hours &amp; Friday Timings</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="text-base">🛠️</span>
-              <span>Services &amp; Specialties Tags</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="text-base">🌐</span>
-              <span>Google Maps &amp; Branch Locations</span>
-            </div>
           </div>
         </div>
 
@@ -325,337 +409,647 @@ export default function AddBusinessPage() {
           </div>
         )}
 
-        {/* Main Add Business Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden"
-        >
-          <fieldset disabled={isSubmitted || loading}>
-            {/* SECTION 1: Business Details */}
-            <section className="p-6 sm:p-10 border-b border-slate-100 bg-gradient-to-br from-blue-50/30 via-white to-indigo-50/20">
-              <div className="flex items-start gap-4 mb-8">
-                <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-[#1D68F2] to-blue-700 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                  <Building2 className="h-6 w-6" />
+        {/* Form Form Container */}
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+          <fieldset disabled={isSubmitted || loading} className="space-y-6 sm:space-y-8">
+
+            {/* SECTION 1: Business Identity */}
+            <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+              {/* Section Header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Business Details</h2>
-                  <p className="text-slate-500 text-xs sm:text-sm">
-                    Tell us about your business and what services you offer
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                      SECTION 1
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                      Business Identity
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Official business details and primary contact channels
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="businessName" className="text-slate-700 font-semibold text-sm block">
-                    Business Name <span className="text-rose-500">*</span>
+              <div className="h-px bg-slate-100 w-full mb-6" />
+
+              {/* Form Fields */}
+              <div className="space-y-5">
+                {/* Row 1: Business Name */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    BUSINESS NAME <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
-                    id="businessName"
-                    name="name"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Acme Tech Corporation, Royal Jewels"
-                    className="w-full h-12 px-4 border-2 rounded-xl border-slate-200 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 bg-white transition-all text-sm font-medium outline-none"
+                    placeholder="e.g. Skyline Logistics & Courier Services"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="category" className="text-slate-700 font-semibold text-sm block">
-                    Category <span className="text-rose-500">*</span>
-                  </label>
-                  <CustomSelect
-                    value={categoryIds[0] || ''}
-                    onChange={(val) => setCategoryIds([val])}
-                    options={categories.map((c) => ({
-                      value: c._id || c.slug,
-                      label: c.name,
-                    }))}
-                    placeholder="Select Primary Category"
-                    searchable
-                    searchPlaceholder="Search category..."
-                  />
-                </div>
+                {/* Row 2: Contact Person & Business Email */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                  <div>
+                    <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                      CONTACT PERSON NAME <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={contactPersonName}
+                        onChange={(e) => setContactPersonName(e.target.value)}
+                        placeholder="e.g. Ahsan Ali"
+                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="businessType" className="text-slate-700 font-semibold text-sm block">
-                    Operating Model
-                  </label>
-                  <CustomSelect
-                    value={businessType}
-                    onChange={(val) => setBusinessType(val as any)}
-                    options={[
-                      { value: 'physical', label: 'Physical Storefront / Office' },
-                      { value: 'service_area', label: 'Service Area / Delivery Business' },
-                      { value: 'online_only', label: 'Online / Remote Operations' },
-                    ]}
-                    placeholder="Select Operating Model"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="description" className="text-slate-700 font-semibold text-sm block">
-                    Business Description <span className="text-rose-500">*</span>
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    required
-                    rows={5}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what makes your business unique, services provided, opening hours, specialties, etc. (minimum 20 characters)"
-                    className="w-full p-4 border-2 rounded-xl border-slate-200 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 bg-white transition-all text-sm font-medium outline-none leading-relaxed"
-                  />
-                  <div className="text-right text-[11px] text-slate-400">
-                    {description.length} characters (min 20)
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase">
+                        BUSINESS EMAIL
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-normal lowercase">
+                        optional
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="e.g. contact@yourbusiness.com"
+                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Logo Upload Box */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-slate-700 font-semibold text-sm block">
-                    Business Logo <span className="text-xs text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-5 items-start">
-                    <div className="relative flex-1 w-full border-2 border-dashed border-slate-300 hover:border-[#1D68F2] bg-slate-50/50 hover:bg-slate-50 rounded-2xl p-6 text-center transition-all">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-slate-900 mb-1">
-                        {logoPreview ? 'Change business logo' : 'Upload business logo'}
-                      </p>
-                      <p className="text-xs text-slate-500 mb-3">PNG, JPG or WebP (square recommended, max 2MB)</p>
-                      <span className="inline-block px-4 py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm pointer-events-none">
-                        Choose Logo File
-                      </span>
+                {/* Row 3: Phone Number & WhatsApp Number */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                  <div>
+                    <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                      PHONE NUMBER <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Phone className="w-4 h-4" />
+                      </div>
                       <input
-                        type="file"
-                        id="logoFile"
-                        name="logo"
-                        accept="image/png,image/jpeg,image/webp"
-                        onChange={handleLogoUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="e.g. +92 300 1234567"
+                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
                       />
                     </div>
-                    {logoPreview && (
-                      <div className="shrink-0">
-                        <div className="w-28 h-28 rounded-2xl border-2 border-slate-200 overflow-hidden bg-white shadow-md flex items-center justify-center p-2">
-                          <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain rounded-xl" />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase">
+                        WHATSAPP NUMBER
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-normal lowercase">
+                        optional
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#25D366]">
+                        <WhatsAppIcon className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={whatsapp}
+                        onChange={(e) => setWhatsapp(e.target.value)}
+                        placeholder="e.g. +92 310 6131361"
+                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* SECTION 2: Location & Category */}
+            <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+              {/* Section Header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                      SECTION 2
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                      Location &amp; Category
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Specify your regional location, industry category, and address
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-100 w-full mb-6" />
+
+              {/* Form Fields */}
+              <div className="space-y-5">
+                {/* Row 1: Country, City, Area/Neighbourhood */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                  <div>
+                    <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                      COUNTRY <span className="text-rose-500">*</span>
+                    </label>
+                    <CountrySelect
+                      value={countryCode}
+                      onChange={(c) => {
+                        setCountryCode(c);
+                        setCity('');
+                      }}
+                      hideFlag
+                      hideCodeBadge
+                      triggerClassName="!h-12 !rounded-xl !border-slate-200/90 !bg-white !text-sm !font-medium !text-slate-800 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20"
+                      placeholder="Select Country"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                      CITY <span className="text-rose-500">*</span>
+                    </label>
+                    <CitySelect
+                      value={city}
+                      onChange={setCity}
+                      countryCode={countryCode}
+                      allowCustomInput
+                      placeholder="Search or select city..."
+                      icon={<Search className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                      triggerClassName="!h-12 !rounded-xl !border-slate-200/90 !bg-white !text-sm !font-medium !text-slate-800 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase">
+                        AREA / NEIGHBOURHOOD
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-normal lowercase">
+                        optional
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={neighbourhood}
+                      onChange={(e) => setNeighbourhood(e.target.value)}
+                      placeholder="e.g. DHA Phase 5 / Gulberg III"
+                      className="w-full h-12 px-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Category & Postal Code */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+                  <div>
+                    <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                      CATEGORY <span className="text-rose-500">*</span>
+                    </label>
+                    <CustomSelect
+                      value={categoryIds[0] || ''}
+                      onChange={(val) => setCategoryIds([val])}
+                      options={categories.map((c) => ({
+                        value: c._id || c.slug,
+                        label: c.name,
+                      }))}
+                      placeholder="Select a category"
+                      searchable
+                      searchPlaceholder="Search category..."
+                      triggerClassName="!h-12 !rounded-xl !border-slate-200/90 !bg-white !text-sm !font-medium !text-slate-800 focus:!border-[#1D68F2] focus:!ring-2 focus:!ring-[#1D68F2]/20"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase">
+                        POSTAL / ZIP CODE
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-normal lowercase">
+                        optional
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                      placeholder="e.g. 54000"
+                      className="w-full h-12 px-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="hidden md:block" />
+                </div>
+
+                {/* Row 3: Complete Address */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    COMPLETE ADDRESS <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      placeholder="e.g. Office # 402, 4th Floor, Arfa Software Technology Park, Ferozepur Road"
+                      className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* SECTION 3: Content & Media */}
+            <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+              {/* Section Header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200">
+                      SECTION 3
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                      Content &amp; Media
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Upload your official business logo and write a compelling description
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-100 w-full mb-6" />
+
+              {/* Form Fields */}
+              <div className="space-y-6">
+                {/* Logo Upload Dropzone */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    BUSINESS LOGO <span className="text-rose-500">*</span>{' '}
+                    <span className="text-xs text-slate-400 font-normal lowercase">
+                      (max 5mb, jpg/png/webp)
+                    </span>
+                  </label>
+
+                  <div className="relative border-2 border-dashed border-slate-300 hover:border-[#1D68F2] bg-white hover:bg-blue-50/20 rounded-2xl p-8 sm:p-10 text-center transition-all cursor-pointer group">
+                    <input
+                      type="file"
+                      id="logoUploadInput"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleLogoUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    {logoPreview ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <img
+                          src={logoPreview}
+                          alt="Business Logo preview"
+                          className="w-24 h-24 object-contain rounded-xl border border-slate-200 shadow-sm mb-3 bg-white"
+                        />
+                        <p className="text-sm font-bold text-slate-800">Logo selected</p>
+                        <p className="text-xs text-[#1D68F2] font-semibold mt-1">
+                          Click or drag to replace
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1D68F2] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                          <Upload className="w-5 h-5" />
                         </div>
+                        <p className="text-sm sm:text-base font-bold text-slate-800 mb-1">
+                          Click to upload your Business Logo
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Supports JPG, PNG, WebP up to 5MB (Up to 5 images remaining)
+                        </p>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            </section>
 
-            {/* SECTION 2: Contact & Location */}
-            <section className="p-6 sm:p-10 border-b border-slate-100 bg-gradient-to-br from-indigo-50/30 via-white to-blue-50/20">
-              <div className="flex items-start gap-4 mb-8">
-                <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                  <MapPin className="h-6 w-6" />
-                </div>
+                {/* Business Description */}
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Contact &amp; Location</h2>
-                  <p className="text-slate-500 text-xs sm:text-sm">
-                    Where can customers reach or visit your business?
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-slate-700 font-semibold text-sm block">Country</label>
-                  <CountrySelect
-                    value={countryCode}
-                    onChange={(c) => {
-                      setCountryCode(c);
-                      setCity('');
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    BUSINESS DESCRIPTION <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={5}
+                    required
+                    value={description}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 2000) {
+                        setDescription(e.target.value);
+                      }
                     }}
-                    placeholder="Select Country"
+                    placeholder="Describe your business services, products, background, and what makes your business unique... (min 20 characters)"
+                    className="w-full p-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all resize-y min-h-[140px]"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="city" className="text-slate-700 font-semibold text-sm block">
-                    City <span className="text-rose-500">*</span>
-                  </label>
-                  <CitySelect
-                    value={city}
-                    onChange={setCity}
-                    countryCode={countryCode}
-                    allowCustomInput
-                    placeholder={countryCode ? 'Select or type city...' : 'Select country first'}
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="address" className="text-slate-700 font-semibold text-sm block">
-                    Complete Address <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    required
-                    value={addressLine1}
-                    onChange={(e) => setAddressLine1(e.target.value)}
-                    placeholder="e.g. Shop #14, Main Boulevard, Gulberg III, Lahore"
-                    className="w-full h-12 px-4 border-2 rounded-xl border-slate-200 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 bg-white transition-all text-sm font-medium outline-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-slate-700 font-semibold text-sm block">
-                    Phone Number <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="flex h-12 rounded-xl border-2 overflow-hidden border-slate-200 focus-within:border-[#1D68F2] focus-within:ring-2 focus-within:ring-[#1D68F2]/20 bg-white transition-all">
-                    <span className="inline-flex items-center px-3.5 bg-slate-100 text-slate-700 font-bold border-r border-slate-200 text-sm shrink-0">
-                      {countryCode === 'PK' ? '+92' : `+${countryCode}`}
-                    </span>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="300 1234567"
-                      className="w-full h-full px-3.5 border-0 bg-transparent text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none text-sm"
-                    />
+                  <div className="flex items-center justify-between mt-2 text-xs text-slate-400 font-medium">
+                    <span>Minimum 20 characters required</span>
+                    <span>{description.length}/2000</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium">Phone number for direct customer calls</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="whatsapp" className="text-slate-700 font-semibold text-sm block">
-                    WhatsApp Number <span className="text-xs text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <div className="flex h-12 rounded-xl border-2 overflow-hidden border-slate-200 focus-within:border-[#1D68F2] focus-within:ring-2 focus-within:ring-[#1D68F2]/20 bg-white transition-all">
-                    <span className="inline-flex items-center px-3.5 bg-slate-100 text-slate-700 font-bold border-r border-slate-200 text-sm shrink-0">
-                      {countryCode === 'PK' ? '+92' : `+${countryCode}`}
-                    </span>
-                    <input
-                      type="tel"
-                      id="whatsapp"
-                      name="whatsapp"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="300 1234567"
-                      className="w-full h-full px-3.5 border-0 bg-transparent text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none text-sm"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium">Can be same as phone number</p>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="email" className="text-slate-700 font-semibold text-sm block">
-                    Contact Email <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="contact@yourbusiness.com"
-                    className="w-full h-12 px-4 border-2 rounded-xl border-slate-200 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 bg-white transition-all text-sm font-medium outline-none"
-                  />
                 </div>
               </div>
             </section>
 
-            {/* SECTION 3: Digital Presence */}
-            <section className="p-6 sm:p-10 border-b border-slate-100 bg-gradient-to-br from-amber-50/30 via-white to-orange-50/20">
-              <div className="flex items-start gap-4 mb-8">
-                <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
-                  <Globe className="h-6 w-6" />
+            {/* SECTION 4: Weekly Opening Hours (Optional) */}
+            <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+              {/* Section Header with Quick Action Buttons */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                        SECTION 4
+                      </span>
+                      <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                        Weekly Opening Hours
+                      </h2>
+                      <span className="text-xs sm:text-sm text-slate-400 font-normal">
+                        (Optional)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Set opening and closing times for each day of the week
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Action Presets */}
+                <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleSetStandardHours}
+                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-50 text-[#1D68F2] hover:bg-blue-100 border border-blue-100 transition-colors cursor-pointer"
+                  >
+                    Standard (Mon-Sat 9AM-6PM)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSet247Hours}
+                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100 transition-colors cursor-pointer"
+                  >
+                    24/7 Open
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-100 w-full mb-3" />
+
+              {/* Weekly Days Rows */}
+              <div className="divide-y divide-slate-100">
+                {DAYS.map((day) => {
+                  const dayData = schedule[day.key];
+                  return (
+                    <div
+                      key={day.key}
+                      className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      {/* Left: Day Name & Open/Closed Toggle Badge */}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-24 sm:w-28 text-sm font-bold ${
+                            dayData.isOpen ? 'text-slate-800' : 'text-slate-400 font-semibold'
+                          }`}
+                        >
+                          {day.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleDayStatus(day.key)}
+                          className={`px-3 py-0.5 rounded-full text-xs font-bold transition-colors cursor-pointer select-none ${
+                            dayData.isOpen
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          {dayData.isOpen ? 'Open' : 'Closed'}
+                        </button>
+                      </div>
+
+                      {/* Right: Time Selectors or 'Closed all day' */}
+                      <div className="flex items-center">
+                        {dayData.isOpen ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 font-medium">From:</span>
+                            <div className="relative inline-flex items-center">
+                              <select
+                                value={dayData.from}
+                                onChange={(e) => updateDayTime(day.key, 'from', e.target.value)}
+                                className="appearance-none bg-white border border-slate-200 rounded-xl px-3 pr-8 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 focus:border-[#1D68F2] outline-none cursor-pointer"
+                              >
+                                {TIME_OPTIONS.map((time) => (
+                                  <option key={time} value={time}>
+                                    {time}
+                                  </option>
+                                ))}
+                              </select>
+                              <Clock className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+                            </div>
+
+                            <span className="text-slate-400 mx-1">—</span>
+
+                            <span className="text-xs text-slate-400 font-medium">To:</span>
+                            <div className="relative inline-flex items-center">
+                              <select
+                                value={dayData.to}
+                                onChange={(e) => updateDayTime(day.key, 'to', e.target.value)}
+                                className="appearance-none bg-white border border-slate-200 rounded-xl px-3 pr-8 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 focus:border-[#1D68F2] outline-none cursor-pointer"
+                              >
+                                {TIME_OPTIONS.map((time) => (
+                                  <option key={time} value={time}>
+                                    {time}
+                                  </option>
+                                ))}
+                              </select>
+                              <Clock className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs sm:text-sm italic text-slate-400">
+                            Closed all day
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* SECTION 5: Online Links (All Optional) */}
+            <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+              {/* Section Header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+                  <Globe className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Digital Presence</h2>
-                  <p className="text-slate-500 text-xs sm:text-sm">
-                    Connect your official website and social pages
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+                      SECTION 5
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                      Online Links
+                    </h2>
+                    <span className="text-xs sm:text-sm text-slate-400 font-normal">
+                      (All Optional)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Connect your website, social media pages, and Google Business Profile
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="websiteUrl" className="text-slate-700 font-semibold text-sm block">
-                    Website URL
+              <div className="h-px bg-slate-100 w-full mb-6" />
+
+              {/* Form Fields: 2x2 Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                {/* Official Website */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    OFFICIAL WEBSITE
                   </label>
-                  <input
-                    type="url"
-                    id="websiteUrl"
-                    name="websiteUrl"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="https://www.example.com"
-                    className="w-full h-12 px-4 border-2 rounded-xl border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 bg-white transition-all text-sm font-medium outline-none"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Globe className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="url"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://yourbusiness.com"
+                      className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="facebookUrl" className="text-slate-700 font-semibold text-sm block">
-                    Facebook Page
+                {/* Facebook Page URL */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    FACEBOOK PAGE URL
                   </label>
-                  <input
-                    type="url"
-                    id="facebookUrl"
-                    name="facebookUrl"
-                    value={facebookUrl}
-                    onChange={(e) => setFacebookUrl(e.target.value)}
-                    placeholder="https://facebook.com/yourpage"
-                    className="w-full h-12 px-4 border-2 rounded-xl border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 bg-white transition-all text-sm font-medium outline-none"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#1877F2]">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="url"
+                      value={facebookUrl}
+                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      placeholder="https://facebook.com/yourbusiness"
+                      className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* YouTube Channel URL */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    YOUTUBE CHANNEL URL
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-600">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder="https://youtube.com/@yourbusiness"
+                      className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Google Business Profile URL */}
+                <div>
+                  <label className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-wider uppercase block mb-2">
+                    GOOGLE BUSINESS PROFILE URL
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-500">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="url"
+                      value={googleBusinessUrl}
+                      onChange={(e) => setGoogleBusinessUrl(e.target.value)}
+                      placeholder="https://maps.app.goo.gl/... or business profile link"
+                      className="w-full h-12 pl-10 pr-4 rounded-xl border border-slate-200/90 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1D68F2] focus:ring-2 focus:ring-[#1D68F2]/20 outline-none transition-all"
+                    />
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* SECTION 4: Submission & Reminders */}
-            <div className="p-6 sm:p-10 bg-gradient-to-b from-slate-50 to-white text-center space-y-5">
-              {/* Post-Approval / Real-time Reminder Card */}
-              <div className="p-4 bg-blue-50/90 border border-blue-200/80 rounded-2xl text-left flex items-start gap-3.5 text-xs text-blue-950 shadow-sm max-w-xl mx-auto">
-                <CheckCircle className="h-5 w-5 text-[#1D68F2] shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <strong className="font-bold text-blue-950 block text-sm mb-0.5">
-                    Almost done! Submit your listing now
-                  </strong>
-                  Your listing will be reviewed promptly. Once approved, you can log in to your owner dashboard to set up your <strong>Owner Profile Card (Photo, Name, Title)</strong>, <strong>Opening Hours</strong>, and <strong>Branch Locations</strong>!
-                </div>
-              </div>
+            {/* Bottom Form Actions */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="w-full sm:w-1/3 h-14 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base transition-colors shadow-sm cursor-pointer flex items-center justify-center"
+              >
+                Cancel
+              </button>
 
-              {/* Big Submit Button */}
               <button
                 type="submit"
                 disabled={!user || isSubmitted || loading}
-                className="w-full sm:w-auto min-h-[54px] px-12 py-4 text-base sm:text-lg font-bold bg-[#1D68F2] hover:bg-[#1756cb] text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl flex items-center justify-center gap-3 mx-auto cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-2/3 h-14 rounded-2xl bg-[#1D68F2] hover:bg-[#1554c9] text-white font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Submitting listing...</span>
-                  </>
+                  </div>
                 ) : isSubmitted ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-white" />
                     <span>Submitted Successfully</span>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <Star className="h-5 w-5 fill-current" />
-                    <span>Submit listing</span>
-                    <Star className="h-5 w-5 fill-current" />
-                  </>
+                  <span>Submit Business for Approval</span>
                 )}
               </button>
-
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                By submitting, your listing will be verified by our moderation team and published publicly.
-              </p>
             </div>
+
           </fieldset>
         </form>
       </div>

@@ -31,6 +31,7 @@ export interface CitySelectProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'hero' | 'minimal';
   'aria-label'?: string;
+  icon?: React.ReactNode;
 }
 
 // In-memory frontend cache for loaded country cities
@@ -55,6 +56,7 @@ function CitySelectComponent({
   size = 'md',
   variant = 'default',
   'aria-label': ariaLabel,
+  icon,
 }: CitySelectProps) {
   const generatedId = useId();
   const selectId = explicitId || generatedId;
@@ -313,7 +315,7 @@ function CitySelectComponent({
         } ${isOpen ? 'border-[#1D68F2] ring-2 ring-[#1D68F2]/20' : ''} ${triggerClassName}`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          {icon !== undefined ? icon : <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />}
 
           {/* City label or prompt */}
           <span

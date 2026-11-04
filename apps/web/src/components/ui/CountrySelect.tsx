@@ -29,6 +29,8 @@ export interface CountrySelectProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'hero' | 'minimal';
   'aria-label'?: string;
+  hideFlag?: boolean;
+  hideCodeBadge?: boolean;
 }
 
 function CountrySelectComponent({
@@ -48,6 +50,8 @@ function CountrySelectComponent({
   size = 'md',
   variant = 'default',
   'aria-label': ariaLabel,
+  hideFlag = false,
+  hideCodeBadge = false,
 }: CountrySelectProps) {
   const generatedId = useId();
   const selectId = explicitId || generatedId;
@@ -261,12 +265,14 @@ function CountrySelectComponent({
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Left Icon or Country Flag */}
-          {selectedCountry ? (
-            <span className="text-base flex-shrink-0 leading-none select-none">
-              {selectedCountry.flag}
-            </span>
-          ) : (
-            <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          {!hideFlag && (
+            selectedCountry ? (
+              <span className="text-base flex-shrink-0 leading-none select-none">
+                {selectedCountry.flag}
+              </span>
+            ) : (
+              <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            )
           )}
 
           {/* Country Name */}
@@ -285,7 +291,7 @@ function CountrySelectComponent({
 
         {/* Right Badge and Chevron */}
         <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
-          {selectedCountry && (
+          {!hideCodeBadge && selectedCountry && (
             <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-bold font-mono rounded bg-slate-100 text-slate-600 border border-slate-200">
               {selectedCountry.code}
             </span>
