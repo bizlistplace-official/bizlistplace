@@ -25,6 +25,8 @@ import {
   Search,
   Share2,
   ImageIcon,
+  Sparkles,
+  Wrench,
 } from 'lucide-react';
 
 function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
@@ -412,6 +414,74 @@ export default function AddBusinessPage() {
         {/* Form Form Container */}
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           <fieldset disabled={isSubmitted || loading} className="space-y-6 sm:space-y-8">
+
+            {/* STAGE 1 ROADMAP / POST-APPROVAL NOTICE BANNER */}
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-blue-500/25 bg-gradient-to-br from-[#0A1428] via-[#0F224A] to-[#0A1324] p-6 sm:p-8 text-white shadow-xl shadow-blue-950/20">
+              {/* Subtle Ambient Glow Effect */}
+              <div className="absolute -top-16 -right-16 w-56 h-56 bg-[#1D68F2]/25 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Header Row: Icon + Badge + Titles */}
+              <div className="relative z-10 flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1D68F2] to-blue-600 flex items-center justify-center shrink-0 text-white shadow-lg shadow-blue-500/25 mt-0.5">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30 mb-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    QUICK REGISTRATION • STAGE 1 OF 2
+                  </div>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
+                    Submit your basic listing details now — enhance your landing page after approval!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed max-w-3xl">
+                    To make your registration quick, submit your primary contact info below. Once your listing is approved by our team, you can log in to your owner dashboard to unlock these rich features:
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider Line */}
+              <div className="relative z-10 h-px bg-white/10 w-full my-5 sm:my-6" />
+
+              {/* 4 Feature Badges Grid */}
+              <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+                <div className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.09] border border-white/10 rounded-2xl px-3.5 py-3 transition-colors backdrop-blur-xs">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-400/20 text-purple-300 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 leading-tight">
+                    Owner Profile Card <span className="text-[11px] font-normal text-slate-400 block">(Photo, Name &amp; Title)</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.09] border border-white/10 rounded-2xl px-3.5 py-3 transition-colors backdrop-blur-xs">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 leading-tight">
+                    Opening Hours <span className="text-[11px] font-normal text-slate-400 block">&amp; Friday Timings</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.09] border border-white/10 rounded-2xl px-3.5 py-3 transition-colors backdrop-blur-xs">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-400/20 text-rose-300 flex items-center justify-center shrink-0">
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 leading-tight">
+                    Services &amp; Specialties <span className="text-[11px] font-normal text-slate-400 block">Category Tags</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.09] border border-white/10 rounded-2xl px-3.5 py-3 transition-colors backdrop-blur-xs">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-400/20 text-sky-300 flex items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 leading-tight">
+                    Google Maps &amp; <span className="text-[11px] font-normal text-slate-400 block">Social Video Links</span>
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* SECTION 1: Business Identity */}
             <section className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8">
