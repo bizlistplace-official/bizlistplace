@@ -38,22 +38,24 @@ BizPocketHub is an enterprise-grade, production-oriented, worldwide business dir
 
 ```text
 bizpockethub/
-├── apps/
-│   ├── web/                     # Next.js App Router (Frontend)
-│   │   ├── src/
-│   │   │   ├── app/             # (public), (auth), dashboard, admin, categories, search
-│   │   │   ├── components/      # UI, layout, business cards, review sections, search hero
-│   │   │   └── lib/             # API client, auth context
-│   ├── api/                     # Express.js REST API (/api/v1)
-│   │   ├── src/
-│   │   │   ├── config/          # Environment & MongoDB connection (with auto memory-db fallback)
-│   │   │   ├── middleware/      # Auth, roles, error handler, Zod validate
-│   │   │   ├── modules/         # auth, businesses, categories, locations, reviews, claims, admin
-│   │   │   ├── services/        # Search service, audit logging, email abstraction
-│   │   │   └── scripts/seed.ts  # Development seed script with fictional global listings
-├── packages/
+├── frontend/                    # Next.js App Router (Frontend)
+│   ├── src/
+│   │   ├── app/                 # (public), (auth), dashboard, admin, categories, search
+│   │   ├── components/          # UI, layout, business cards, review sections, search hero
+│   │   ├── lib/                 # API client, auth context
+│   │   └── shared/              # Shared types, constants, and Zod schemas
+│   ├── public/                  # Static assets, logos, and images
+│   └── package.json
+├── backend/                     # Express.js REST API (/api/v1)
+│   ├── src/
+│   │   ├── config/              # Environment & MongoDB connection (with auto memory-db fallback)
+│   │   ├── middleware/          # Auth, roles, error handler, Zod validate
+│   │   ├── modules/             # auth, businesses, categories, locations, reviews, claims, admin
+│   │   ├── services/            # Search service, audit logging, email abstraction
+│   │   └── scripts/seed.ts      # Development seed script with fictional global listings
 │   ├── shared/                  # Common TypeScript types, constants, and Zod schemas
-├── docs/                        # Architecture, reference analysis, API docs, deployment guide
+│   ├── docs/                    # Architecture, reference analysis, API docs, deployment guide
+│   └── package.json
 ├── .env.example
 ├── package.json
 └── README.md
