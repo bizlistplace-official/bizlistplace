@@ -24,6 +24,8 @@ export interface IBusinessDocument extends Document {
   countryCode: string;
   serviceAreas: string[];
   listingStatus: ListingStatus;
+  isApproved?: boolean;
+  hiddenBySpam?: boolean;
   rejectionReason?: string;
   verificationStatus: VerificationStatus;
   verificationNotes?: string;
@@ -131,6 +133,16 @@ const BusinessSchema = new Schema<IBusinessDocument>(
       type: String,
       enum: LISTING_STATUSES,
       default: 'pending',
+      index: true,
+    },
+    isApproved: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    hiddenBySpam: {
+      type: Boolean,
+      default: false,
       index: true,
     },
     rejectionReason: {

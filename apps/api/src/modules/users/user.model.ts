@@ -21,6 +21,9 @@ export interface IUserDocument extends Document {
   emailVerificationToken?: string | null;
   emailVerificationExpires?: Date | null;
   emailVerificationAttempts?: number;
+  isSpam?: boolean;
+  spamReason?: string;
+  spamAt?: Date | null;
   comparePassword(candidate: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -112,9 +115,45 @@ const UserSchema = new Schema<IUserDocument>(
       default: 0,
       select: false,
     },
+    isSpam: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    spamReason: {
+      type: String,
+      maxlength: 200,
+      default: '',
+    },
+    spamAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: function (_doc, ret: any) {
+        delete ret.password;
+        delete ret.passwordHash;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpires;
+        delete ret.passwordResetOtp;
+        delete ret.passwordResetOtpExpires;
+        delete ret.passwordResetAttempts;
+        delete ret.lastPasswordResetOtpSentAt;
+        delete ret.resetSessionToken;
+        delete ret.resetSessionExpires;
+        delete ret.emailVerificationOtp;
+        delete ret.emailVerificationToken;
+        delete ret.emailVerificationExpires;
+        delete ret.emailVerificationAttempts;
+        delete ret.loginAttempts;
+        delete ret.lockUntil;
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 

@@ -1,9 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { Globe2, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { Globe2, ShieldCheck } from 'lucide-react';
 import { POPULAR_COUNTRIES } from '@bizpockethub/shared';
+import { useAuth } from '@/lib/authContext';
 
 const FooterParticles = dynamic(
   () => import('./FooterParticles').then((mod) => mod.FooterParticles),
@@ -11,6 +14,9 @@ const FooterParticles = dynamic(
 );
 
 export function Footer() {
+  const { user } = useAuth();
+  const accountHref = user ? '/dashboard' : '/login';
+
   return (
     <footer className="relative bg-slate-950 text-slate-400 text-sm border-t border-slate-900 mt-20 overflow-hidden">
       {/* Animated Floating Particles in rgb(29, 104, 242) */}
@@ -83,14 +89,6 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/countries"
-                  className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
-                >
-                  <span>Global Locations</span>
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/add-business"
                   className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
                 >
@@ -103,6 +101,15 @@ export function Footer() {
                   className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
                 >
                   <span>Claim Your Profile</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={accountHref}
+                  suppressHydrationWarning
+                  className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
+                >
+                  <span>My Account</span>
                 </Link>
               </li>
             </ul>
@@ -167,6 +174,14 @@ export function Footer() {
                   className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
                 >
                   <span>Terms of Service</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/sitemap"
+                  className="text-slate-400 hover:text-[rgb(29,104,242)] hover:translate-x-1 inline-flex items-center gap-1 transition-all duration-200"
+                >
+                  <span>Sitemap</span>
                 </Link>
               </li>
             </ul>

@@ -9,6 +9,7 @@ import { CategoryController } from '../categories/category.controller';
 import { SearchService } from '../../services/search.service';
 import { AuditService } from '../../services/audit.service';
 import { EmailService } from '../../services/email.service';
+import { logActivity } from '../../services/activity.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { POPULAR_COUNTRIES, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 
@@ -261,6 +262,15 @@ export class BusinessController {
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = req.user!;
+
+      if (user.isSpam) {
+        res.status(403).json({
+          success: false,
+          message: 'Your account has been flagged for spam. You cannot create new business listings.',
+        });
+        return;
+      }
+
       const {
         name,
         description,
@@ -573,6 +583,16 @@ export class BusinessController {
       CategoryController.invalidateCache();
 
       await AuditService.log('business_deleted', 'business', id, {}, user._id, req.ip);
+
+      logActivity({
+        actor: user._id,
+        actorName: user.name || 'Administrator',
+        action: 'delete_business',
+        targetType: 'business',
+        targetId: id,
+        targetLabel: business.name || id,
+        details: `Deleted business listing "${business.name || id}"`,
+      });
 
       res.json({
         success: true,

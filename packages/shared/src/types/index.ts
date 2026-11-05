@@ -14,8 +14,13 @@ export interface IUser {
   role: UserRole;
   accountStatus: 'active' | 'suspended';
   emailVerifiedAt?: string | null;
+  isSpam?: boolean;
+  spamReason?: string;
+  spamAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  businessCount?: number;
+  reviewCount?: number;
 }
 
 export interface IBusinessLocation {
@@ -73,6 +78,9 @@ export interface IBusiness {
   businessType: BusinessType;
   serviceAreas?: string[];
   listingStatus: ListingStatus;
+  isApproved?: boolean;
+  hiddenBySpam?: boolean;
+  paymentStatus?: string;
   rejectionReason?: string;
   verificationStatus: VerificationStatus;
   verificationNotes?: string;

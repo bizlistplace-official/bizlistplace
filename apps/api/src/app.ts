@@ -108,6 +108,7 @@ app.use('/api/v1', reviewRoutes);
 app.use('/api/v1', claimRoutes);
 app.use('/api/v1', reportRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/v1/contact', contactRoutes);
 app.get('/api/v1/owner/businesses', requireAuth, BusinessController.getOwnerBusinesses);
 

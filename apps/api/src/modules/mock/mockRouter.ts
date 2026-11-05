@@ -910,9 +910,11 @@ mockRouter.get('/admin/stats', (req: Request, res: Response) => {
     data: {
       totalBusinesses: mockBusinesses.length,
       pendingBusinesses: 0,
-      totalUsers: 1420,
+      publishedBusinesses: mockBusinesses.length,
+      totalUsers: 1,
       pendingClaims: 0,
       openReports: 0,
+      totalReviews: 0,
     },
   });
 });
@@ -921,11 +923,374 @@ mockRouter.get('/admin/businesses/pending', (req: Request, res: Response) => {
   res.json({ success: true, data: [] });
 });
 
+mockRouter.get('/admin/businesses', (req: Request, res: Response) => {
+  res.json({ success: true, data: mockBusinesses });
+});
+
+mockRouter.get('/admin/claims', (req: Request, res: Response) => {
+  res.json({ success: true, data: [] });
+});
+
 mockRouter.get('/admin/claims/pending', (req: Request, res: Response) => {
   res.json({ success: true, data: [] });
 });
 
+let mockSettings = {
+  _id: 'mock_settings_id',
+  ownerNotificationEmail: 'bizlistplaceofficial@gmail.com',
+  paymentSettings: {
+    enabled: false,
+    currency: 'USD',
+    listingFee: 0,
+    instructions: '',
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 mockRouter.get('/admin/reports', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      totals: {
+        totalBusinesses: 0,
+        publishedBusinesses: 0,
+        pendingBusinesses: 0,
+        rejectedBusinesses: 0,
+        suspendedBusinesses: 0,
+        totalUsers: 0,
+        totalReviews: 0,
+        totalClaims: 0,
+        pendingClaims: 0,
+      },
+      businessesByCategory: [],
+      businessesByCountry: [],
+      topCities: [],
+      businessesByMonth: [],
+      usersByMonth: [],
+      paymentsSummary: {
+        totalVerified: 0,
+        totalPending: 0,
+        totalAmount: 0,
+        currency: mockSettings.paymentSettings.currency,
+      },
+      pendingAging: {
+        submittedToday: 0,
+        waiting1to3Days: 0,
+        waiting3to7Days: 0,
+        waitingOver7Days: 0,
+        oldestPendingDays: 0,
+      },
+      reviewsSummary: {
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      },
+    },
+  });
+});
+
+mockRouter.get('/admin/settings', (req: Request, res: Response) => {
+  res.json({ success: true, data: mockSettings });
+});
+
+mockRouter.patch('/admin/settings', (req: Request, res: Response) => {
+  const { ownerNotificationEmail, paymentSettings } = req.body || {};
+  if (ownerNotificationEmail) mockSettings.ownerNotificationEmail = ownerNotificationEmail;
+  if (paymentSettings) {
+    mockSettings.paymentSettings = { ...mockSettings.paymentSettings, ...paymentSettings };
+  }
+  mockSettings.updatedAt = new Date().toISOString();
+  res.json({ success: true, message: 'Settings saved successfully.', data: mockSettings });
+});
+
+mockRouter.get('/admin/audit-logs', (req: Request, res: Response) => {
   res.json({ success: true, data: [] });
+});
+
+mockRouter.get('/admin/payments', (req: Request, res: Response) => {
+  res.json({ success: true, data: [] });
+});
+
+mockRouter.get('/admin/reviews', (req: Request, res: Response) => {
+  res.json({ success: true, data: [] });
+});
+
+mockRouter.get('/admin/users', (req: Request, res: Response) => {
+  let list = [
+    {
+      _id: 'admin-1',
+      name: 'Directory Administrator',
+      email: 'admin@bizlistplace.com',
+      role: 'admin',
+      accountStatus: 'active',
+      emailVerifiedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      businessCount: 0,
+      reviewCount: 0,
+    },
+    {
+      _id: 'user-test-1',
+      name: 'John Merchant',
+      email: 'john@example.com',
+      role: 'business_owner',
+      accountStatus: 'active',
+      emailVerifiedAt: new Date().toISOString(),
+      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      updatedAt: new Date().toISOString(),
+      businessCount: 2,
+      reviewCount: 1,
+    },
+    {
+      _id: 'user-test-2',
+      name: 'Sarah Reviewer',
+      email: 'sarah@example.com',
+      role: 'user',
+      accountStatus: 'active',
+      emailVerifiedAt: new Date().toISOString(),
+      createdAt: new Date(Date.now() - 86400000 * 12).toISOString(),
+      updatedAt: new Date().toISOString(),
+      businessCount: 0,
+      reviewCount: 4,
+    },
+  ];
+
+  const search = req.query.search as string;
+  if (search && search.trim()) {
+    const s = search.toLowerCase().trim();
+    list = list.filter((u) => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s));
+  }
+
+  res.json({
+    success: true,
+    data: list,
+  });
+});
+
+mockRouter.patch('/admin/users/:id/role', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  res.json({
+    success: true,
+    message: `User role updated to ${role}.`,
+    data: { _id: id, role },
+  });
+});
+
+mockRouter.patch('/admin/users/:id/toggle-status', (req: Request, res: Response) => {
+  const { id } = req.params;
+  res.json({
+    success: true,
+    message: `User account status updated.`,
+    data: { _id: id, accountStatus: 'active' },
+  });
+});
+
+mockRouter.patch('/admin/users/:id/spam', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  if (!reason || !reason.trim() || reason.trim().length > 200) {
+    return res.status(400).json({ success: false, message: 'Valid spam reason under 200 characters required.' });
+  }
+  res.json({
+    success: true,
+    message: 'User flagged as spam and approved listings hidden.',
+    data: { _id: id, isSpam: true, spamReason: reason.trim() },
+  });
+});
+
+mockRouter.patch('/admin/users/:id/unspam', (req: Request, res: Response) => {
+  const { id } = req.params;
+  res.json({
+    success: true,
+    message: 'User un-spammed and listings restored.',
+    data: { _id: id, isSpam: false, spamReason: '' },
+  });
+});
+
+mockRouter.delete('/admin/users/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  res.json({
+    success: true,
+    message: 'User and all associated records deleted permanently.',
+  });
+});
+
+mockRouter.get('/admin/verify-smtp', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'SMTP configured and operational.',
+    smtpConfig: {
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      fromUser: 'bizlistplaceofficial@gmail.com',
+      fromName: 'Biz List Place',
+    },
+  });
+});
+
+let mockEmailLogs: any[] = [
+  {
+    _id: 'mock-email-1',
+    to: 'partner@example.com',
+    subject: 'Listing Verification Notice',
+    type: 'manual',
+    status: 'sent',
+    sentBy: { name: 'Directory Administrator', email: 'admin@bizlistplace.com' },
+    createdAt: new Date().toISOString(),
+  },
+];
+
+mockRouter.get('/admin/emails/stats', (req: Request, res: Response) => {
+  const sentCount = mockEmailLogs.filter((l) => l.status === 'sent').length;
+  res.json({
+    success: true,
+    data: {
+      total: sentCount,
+      today: sentCount,
+    },
+  });
+});
+
+mockRouter.get('/admin/emails/log', (req: Request, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string, 10) || 20));
+  const skip = (page - 1) * limit;
+  const paginatedLogs = mockEmailLogs.slice(skip, skip + limit);
+
+  res.json({
+    success: true,
+    data: paginatedLogs,
+    pagination: {
+      page,
+      limit,
+      total: mockEmailLogs.length,
+      totalPages: Math.ceil(mockEmailLogs.length / limit) || 1,
+    },
+  });
+});
+
+mockRouter.post('/admin/emails/send', (req: Request, res: Response) => {
+  const { to, subject, message } = req.body || {};
+
+  if (!to || typeof to !== 'string' || !to.trim()) {
+    res.status(400).json({ success: false, message: 'Recipient email address is required.' });
+    return;
+  }
+  if (!subject || typeof subject !== 'string' || !subject.trim()) {
+    res.status(400).json({ success: false, message: 'Subject is required.' });
+    return;
+  }
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    res.status(400).json({ success: false, message: 'Message content is required.' });
+    return;
+  }
+
+  const trimmedTo = to.trim();
+  const trimmedSubject = subject.trim();
+  const trimmedMessage = message.trim();
+
+  if (trimmedSubject.length > 200) {
+    res.status(400).json({ success: false, message: 'Subject must not exceed 200 characters.' });
+    return;
+  }
+  if (trimmedMessage.length > 5000) {
+    res.status(400).json({ success: false, message: 'Message must not exceed 5000 characters.' });
+    return;
+  }
+  if (trimmedTo.includes(',') || trimmedTo.includes(';') || /\s/.test(trimmedTo)) {
+    res.status(400).json({ success: false, message: 'Only a single recipient email address is permitted. Bulk sending is disabled.' });
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedTo)) {
+    res.status(400).json({ success: false, message: 'Please provide a valid recipient email address.' });
+    return;
+  }
+
+  const newLog = {
+    _id: `mock-email-${Date.now()}`,
+    to: trimmedTo.toLowerCase(),
+    subject: trimmedSubject,
+    type: 'manual',
+    status: 'sent',
+    sentBy: { name: 'Directory Administrator', email: 'admin@bizlistplace.com' },
+    createdAt: new Date().toISOString(),
+  };
+  mockEmailLogs.unshift(newLog);
+
+  res.json({
+    success: true,
+    message: `Email successfully sent to ${trimmedTo}.`,
+  });
+});
+
+let mockActivityLogs: any[] = [
+  {
+    _id: 'mock-act-1',
+    actor: { _id: 'admin-1', name: 'Directory Administrator', email: 'admin@bizlistplace.com', role: 'admin' },
+    actorName: 'Directory Administrator',
+    action: 'approve_business',
+    targetType: 'business',
+    targetId: 'biz-1',
+    targetLabel: 'Acme Corp',
+    details: 'Approved business listing "Acme Corp"',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+mockRouter.get('/admin/activity-log', (req: Request, res: Response) => {
+  const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string, 10) || 20));
+  const skip = (page - 1) * limit;
+
+  let filtered = [...mockActivityLogs];
+  if (req.query.action && typeof req.query.action === 'string' && req.query.action.trim() && req.query.action.trim() !== 'all') {
+    filtered = filtered.filter((l) => l.action === (req.query.action as string).trim());
+  }
+
+  const paginatedLogs = filtered.slice(skip, skip + limit);
+
+  res.json({
+    success: true,
+    data: paginatedLogs,
+    pagination: {
+      page,
+      limit,
+      total: filtered.length,
+      totalPages: Math.ceil(filtered.length / limit) || 1,
+    },
+  });
+});
+
+mockRouter.get('/admin/export', (req: Request, res: Response) => {
+  const snapshot = {
+    exportedAt: new Date().toISOString(),
+    counts: {
+      users: 1,
+      businesses: mockBusinesses.length,
+      reviews: 0,
+    },
+    users: [
+      {
+        _id: 'admin-1',
+        name: 'Directory Administrator',
+        email: 'admin@bizlistplace.com',
+        role: 'admin',
+        accountStatus: 'active',
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    businesses: mockBusinesses,
+    reviews: [],
+  };
+
+  const dateStr = new Date().toISOString().split('T')[0];
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="bizlistplace-backup-${dateStr}.json"`);
+  res.status(200).send(JSON.stringify(snapshot, null, 2));
 });
 
