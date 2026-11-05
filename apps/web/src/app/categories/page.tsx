@@ -1,97 +1,14 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
-import Link from 'next/link';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { fetchApi } from '@/lib/api';
 import { ICategory, INITIAL_CATEGORIES } from '@bizpockethub/shared';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Building2,
-  Laptop,
-  Stethoscope,
-  Scale,
-  Factory,
-  Utensils,
-  ShoppingBag,
-  Car,
-  Briefcase,
-  GraduationCap,
-  Landmark,
-  FlaskConical,
-  Store,
-  Bus,
-  Hospital,
-  Home,
-  Globe,
-  UtensilsCrossed,
-  Truck,
-  Bed,
-  Smartphone,
-  Wheat,
-  Shirt,
-  PartyPopper,
-  Sparkles,
-  HardHat,
-  Sun,
-  CircleDollarSign,
-  Wrench,
-  Package,
-  Printer,
-  ShieldCheck,
-  Code2,
-  Plane,
-} from 'lucide-react';
+import { CategoriesExplorer } from '@/components/categories/CategoriesExplorer';
 
 export const metadata: Metadata = {
   title: 'All Business Categories | Biz List Place',
-  description: 'Explore all 34+ verified business categories and industry sectors across Pakistan and worldwide on Biz List Place.',
-};
-
-const categoryIcons: Record<string, LucideIcon> = {
-  'bank': Landmark,
-  'laboratory': FlaskConical,
-  'local-shops-traders': Store,
-  'information-technology-it-services': Laptop,
-  'bus-companies': Bus,
-  'hospital': Hospital,
-  'shopping-retail-chains': ShoppingBag,
-  'education': GraduationCap,
-  'real-estate': Home,
-  'importer-and-exporter': Globe,
-  'restaurants-food-chains': UtensilsCrossed,
-  'courier-cargo-companies': Truck,
-  'hotels-guest-houses': Bed,
-  'automotive': Car,
-  'retail': ShoppingBag,
-  'telecom-companies': Smartphone,
-  'agriculture-dairy-livestock': Wheat,
-  'apparel-textiles': Shirt,
-  'banquet-halls-events': PartyPopper,
-  'beauty-spa': Sparkles,
-  'construction': HardHat,
-  'electronics-solar-appliances': Sun,
-  'finance': CircleDollarSign,
-  'healthcare': Stethoscope,
-  'home-services-maintenance': Wrench,
-  'manufacturing-industrial': Factory,
-  'kiryana-wholesale-general': Package,
-  'legal': Scale,
-  'printing-packaging-stationery': Printer,
-  'restaurants': Utensils,
-  'security-safety-surveillance': ShieldCheck,
-  'technology': Code2,
-  'transport-cargo-logistics': Truck,
-  'travel': Plane,
-  // Existing compatibility
-  'technology-software': Laptop,
-  'healthcare-medical': Stethoscope,
-  'legal-financial': Scale,
-  'construction-real-estate': Building2,
-  'restaurants-hospitality': Utensils,
-  'retail-ecommerce': ShoppingBag,
-  'automotive-transport': Car,
-  'professional-services': Briefcase,
-  'education-training': GraduationCap,
+  description:
+    'Explore 50+ verified business categories and industry sectors across Pakistan and worldwide on Biz List Place.',
 };
 
 // Use ISR (Incremental Static Regeneration) to serve pre-rendered HTML instantly
@@ -103,17 +20,21 @@ function CategoriesSkeleton() {
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4"
+          className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between"
         >
-          <div className="space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-slate-100" />
+          <div className="h-44 w-full bg-slate-200" />
+          <div className="p-5 space-y-3">
             <div className="h-5 w-3/4 bg-slate-200 rounded" />
             <div className="h-3 w-full bg-slate-100 rounded" />
             <div className="h-3 w-2/3 bg-slate-100 rounded" />
+            <div className="pt-2 flex gap-1.5">
+              <div className="h-5 w-16 bg-slate-100 rounded-md" />
+              <div className="h-5 w-20 bg-slate-100 rounded-md" />
+            </div>
           </div>
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div className="h-4 w-16 bg-slate-100 rounded" />
-            <div className="h-4 w-12 bg-slate-100 rounded" />
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="h-4 w-20 bg-slate-100 rounded" />
+            <div className="h-4 w-14 bg-slate-100 rounded" />
           </div>
         </div>
       ))}
@@ -123,67 +44,34 @@ function CategoriesSkeleton() {
 
 async function CategoriesList() {
   const res = await fetchApi<ICategory[]>('/categories');
-  const categories = res.data || INITIAL_CATEGORIES;
+  const apiCategories = res.data || [];
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 w-full">
-      {categories.map((cat) => {
-        const Icon = categoryIcons[cat.slug] || Building2;
-        const subcats = (cat as any).subcategories || [];
+  // Create quick lookup map for API categories
+  const apiMap = new Map(apiCategories.map((c) => [c.slug, c]));
 
-        return (
-          <Link
-            key={cat.slug}
-            href={`/categories/${cat.slug}`}
-            prefetch={true}
-            className="bg-white border border-slate-200 hover:border-[#1a56c5]/50 rounded-2xl p-5 shadow-xs hover:shadow-lg transition-all duration-200 hover:-translate-y-1 group flex flex-col justify-between"
-          >
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1a56c5] flex items-center justify-center group-hover:bg-[#1a56c5] group-hover:text-white transition-all duration-200 group-hover:scale-105 shadow-xs">
-                <Icon className="w-6 h-6 text-[#1a56c5] group-hover:text-white transition-colors duration-200" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900 group-hover:text-[#1a56c5] transition-colors leading-snug">
-                  {cat.name}
-                </h2>
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mt-1">
-                  {cat.description || 'Verified companies and providers within this sector.'}
-                </p>
-              </div>
+  // Merge INITIAL_CATEGORIES with API categories so all 50+ categories are ALWAYS rendered
+  const mergedList: ICategory[] = INITIAL_CATEGORIES.map((initCat) => {
+    const fromApi = apiMap.get(initCat.slug);
+    return {
+      _id: fromApi?._id || `cat_${initCat.slug}`,
+      name: fromApi?.name || initCat.name,
+      slug: initCat.slug,
+      icon: fromApi?.icon || initCat.icon,
+      imageUrl: (fromApi as any)?.imageUrl || (initCat as any)?.imageUrl,
+      description: fromApi?.description || initCat.description,
+      isActive: true,
+      businessCount: fromApi?.businessCount ?? 0,
+      subcategories: (fromApi as any)?.subcategories || initCat.subcategories || [],
+    };
+  });
 
-              {/* Subcategories preview tags */}
-              {subcats.length > 0 && (
-                <div className="pt-1 flex flex-wrap gap-1.5">
-                  {subcats.slice(0, 3).map((sub: string, idx: number) => (
-                    <span
-                      key={`${sub}-${idx}`}
-                      className="text-[11px] font-medium bg-slate-100/80 text-slate-700 px-2 py-0.5 rounded-md"
-                    >
-                      {sub}
-                    </span>
-                  ))}
-                  {subcats.length > 3 && (
-                    <span className="text-[10px] text-slate-600 font-semibold self-center">
-                      +{subcats.length - 3} more
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
+  // Also include any extra custom categories from the API not present in INITIAL_CATEGORIES
+  const initialSlugs = new Set(INITIAL_CATEGORIES.map((c) => c.slug));
+  const extras = apiCategories.filter((c) => !initialSlugs.has(c.slug));
 
-            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold">
-              <span className="text-[#1a56c5] bg-blue-50 px-2.5 py-0.5 rounded-md text-[11px] font-semibold">
-                {(cat as any).businessCount ?? 0} Listed
-              </span>
-              <span className="text-slate-900 group-hover:text-[#1a56c5] group-hover:translate-x-1 transition-all">
-                Browse &rarr;
-              </span>
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
+  const allCategories = [...mergedList, ...extras];
+
+  return <CategoriesExplorer initialCategories={allCategories} />;
 }
 
 export default function CategoriesPage() {

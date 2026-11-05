@@ -6,7 +6,7 @@ import { fetchApi } from '@/lib/api';
 import { BusinessCard } from '@/components/business/BusinessCard';
 import { Pagination } from '@/components/ui/Pagination';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { ICategory, IBusiness } from '@bizpockethub/shared';
+import { ICategory, IBusiness, INITIAL_CATEGORIES } from '@bizpockethub/shared';
 import { ChevronRight, Building2, Search, SlidersHorizontal } from 'lucide-react';
 
 interface CategoryPageProps {
@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug: rawSlug } = await params;
   const slug = decodeURIComponent(rawSlug || '').replace(/[:.,]+$/, '');
   const res = await fetchApi<ICategory>(`/categories/${slug}`);
-  if (!res.success || !res.data) {
+  const category = res.data || (INITIAL_CATEGORIES.find((c) => c.slug === slug) as any);
+  if (!category) {
     return { title: 'Category Not Found' };
   }
-  const category = res.data;
   return {
     title: `${category.name} Companies & Providers`,
     description: `Discover verified ${category.name.toLowerCase()} businesses, suppliers, and agencies worldwide on Biz List Place. ${category.description || ''}`,
@@ -52,10 +52,27 @@ export default async function CategoryDetailPage({ params, searchParams }: Categ
     fetchApi<IBusiness[]>(`/categories/${slug}/businesses?${queryParams.toString()}`),
   ]);
 
-  if (!categoryRes.success || !categoryRes.data) {
+  let category = categoryRes.data;
+  if (!category) {
+    const fallback = INITIAL_CATEGORIES.find((c) => c.slug === slug);
+    if (fallback) {
+      category = {
+        _id: `cat_${fallback.slug}`,
+        name: fallback.name,
+        slug: fallback.slug,
+        icon: fallback.icon,
+        imageUrl: (fallback as any).imageUrl,
+        description: fallback.description,
+        isActive: true,
+        businessCount: 0,
+        subcategories: (fallback as any).subcategories || [],
+      } as any;
+    }
+  }
+
+  if (!category) {
     notFound();
   }
-  const category = categoryRes.data;
 
   const businesses: IBusiness[] = Array.isArray(businessRes.data)
     ? businessRes.data

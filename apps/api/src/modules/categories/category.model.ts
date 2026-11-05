@@ -5,6 +5,7 @@ export interface ICategoryDocument extends Document {
   slug: string;
   parentId?: Types.ObjectId | null;
   icon?: string;
+  imageUrl?: string;
   description?: string;
   isActive: boolean;
   createdAt: Date;
@@ -36,6 +37,10 @@ const CategorySchema = new Schema<ICategoryDocument>(
     icon: {
       type: String,
       default: 'Building2',
+    },
+    imageUrl: {
+      type: String,
+      default: '',
     },
     description: {
       type: String,

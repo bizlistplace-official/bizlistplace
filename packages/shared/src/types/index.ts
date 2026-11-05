@@ -49,6 +49,7 @@ export interface ICategory {
   slug: string;
   parentId?: string | null;
   icon?: string;
+  imageUrl?: string;
   description?: string;
   isActive: boolean;
   businessCount?: number;

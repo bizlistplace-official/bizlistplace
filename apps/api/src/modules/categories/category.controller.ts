@@ -16,18 +16,32 @@ export class CategoryController {
 
   static async syncInitialCategories(): Promise<void> {
     try {
-      const existing = await Category.find({}).select('slug').lean();
-      const existingSlugs = new Set(existing.map((c) => c.slug));
-      const missing = INITIAL_CATEGORIES.filter((c) => !existingSlugs.has(c.slug));
+      const existingCount = await Category.countDocuments();
+      if (existingCount < INITIAL_CATEGORIES.length) {
+        console.log(`[CategorySync] Synchronizing ${INITIAL_CATEGORIES.length} categories with MongoDB...`);
+      }
 
-      if (missing.length > 0) {
-        console.log(`[CategorySync] Adding ${missing.length} missing categories to MongoDB...`);
-        await Category.insertMany(
-          missing.map((c) => ({
-            ...c,
-            isActive: true,
-          }))
-        );
+      const bulkOps = INITIAL_CATEGORIES.map((c) => ({
+        updateOne: {
+          filter: { slug: c.slug },
+          update: {
+            $set: {
+              name: c.name,
+              icon: c.icon,
+              imageUrl: c.imageUrl,
+              description: c.description,
+              isActive: true,
+            },
+            $setOnInsert: {
+              createdAt: new Date(),
+            },
+          },
+          upsert: true,
+        },
+      }));
+
+      if (bulkOps.length > 0) {
+        await Category.bulkWrite(bulkOps);
         CategoryController.invalidateCache();
         console.log(`[CategorySync] Successfully synchronized all ${INITIAL_CATEGORIES.length} categories.`);
       }

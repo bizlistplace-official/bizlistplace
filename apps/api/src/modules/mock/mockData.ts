@@ -5,6 +5,7 @@ export const mockCategories: ICategory[] = INITIAL_CATEGORIES.map((cat, idx) => 
   name: cat.name,
   slug: cat.slug,
   icon: cat.icon,
+  imageUrl: (cat as any).imageUrl,
   description: cat.description,
   isActive: true,
   businessCount: 0,
